@@ -1,0 +1,53 @@
+{
+  "generated_at_utc": "2026-04-25T04:11:06.084003+00:00",
+  "ship_count": 2,
+  "whale_sightings_used": 706,
+  "environment_mode": "live",
+  "environment_zone": {
+    "lat": 33.9,
+    "lon": -118.4,
+    "score": 4.54,
+    "chlorophyll_mg_m3": 0.6360114,
+    "sea_surface_temp_c": 18.0,
+    "chlorophyll_observed_at_utc": "2026-04-12T12:00:00Z",
+    "sst_observed_at_utc": "2026-04-25T04:00",
+    "chlorophyll_source": "NOAA CoastWatch ERDDAP (VIIRS weekly global)",
+    "sst_source": "Open-Meteo Marine API"
+  },
+  "ships": [
+    {
+      "ship": "Tanker Bravo",
+      "mmsi": "222000222",
+      "lat": 33.86,
+      "lon": -118.35,
+      "sog": 11.4,
+      "heading": 170.0,
+      "observed_at": "2026-04-25T04:11:06.081137+00:00",
+      "risk_level": "MEDIUM",
+      "risk_total": 4.08,
+      "risk_components": {
+        "whale_score": 0.0,
+        "environment_score": 3.08,
+        "speed_score": 1.0
+      },
+      "nearby_whale_sightings": 0
+    },
+    {
+      "ship": "Cargo Alpha",
+      "mmsi": "111000111",
+      "lat": 33.93,
+      "lon": -118.46,
+      "sog": 13.2,
+      "heading": 155.0,
+      "observed_at": "2026-04-25T04:11:06.081137+00:00",
+      "risk_level": "MEDIUM",
+      "risk_total": 4.07,
+      "risk_components": {
+        "whale_score": 0.0,
+        "environment_score": 3.07,
+        "speed_score": 1.0
+      },
+      "nearby_whale_sightings": 0
+    }
+  ]
+}

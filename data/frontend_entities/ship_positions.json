@@ -1,0 +1,28 @@
+[
+  {
+    "id": "ship-1",
+    "shipName": "Tanker Bravo",
+    "mmsi": "222000222",
+    "latitude": 33.86,
+    "longitude": -118.35,
+    "speedKnots": 11.4,
+    "headingDeg": 170.0,
+    "shipType": "tanker",
+    "riskScore": 4.08,
+    "isRerouted": false,
+    "recordedAt": "2026-04-25T04:11:06.081137+00:00"
+  },
+  {
+    "id": "ship-2",
+    "shipName": "Cargo Alpha",
+    "mmsi": "111000111",
+    "latitude": 33.93,
+    "longitude": -118.46,
+    "speedKnots": 13.2,
+    "headingDeg": 155.0,
+    "shipType": "cargo",
+    "riskScore": 4.07,
+    "isRerouted": false,
+    "recordedAt": "2026-04-25T04:11:06.081137+00:00"
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "event-ship-1",
+    "agentType": "ship_agent",
+    "agentName": "ship_agent_222000222",
+    "eventType": "risk_evaluated",
+    "message": "Risk 4.08 (MEDIUM) for Tanker Bravo. Monitoring continues.",
+    "occurredAt": "2026-04-25T04:11:06.081137+00:00"
+  },
+  {
+    "id": "event-ship-2",
+    "agentType": "ship_agent",
+    "agentName": "ship_agent_111000111",
+    "eventType": "risk_evaluated",
+    "message": "Risk 4.07 (MEDIUM) for Cargo Alpha. Monitoring continues.",
+    "occurredAt": "2026-04-25T04:11:06.081137+00:00"
+  },
+  {
+    "id": "event-whale-zone-1",
+    "agentType": "whale_agent",
+    "agentName": "whale_sentinel",
+    "eventType": "risk_zone_broadcast",
+    "message": "Broadcasting krill zone score=4.54 at 33.9, -118.4",
+    "occurredAt": "2026-04-25T04:11:06.084003+00:00"
+  }
+]

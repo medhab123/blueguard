@@ -1,0 +1,19 @@
+{
+  "mode": "live",
+  "generated_at_utc": "2026-04-25T04:08:32.177565+00:00",
+  "high_krill_zone": {
+    "lat": 33.9,
+    "lon": -118.4,
+    "score": 4.54,
+    "chlorophyll_mg_m3": 0.6360114,
+    "sea_surface_temp_c": 18.0,
+    "chlorophyll_observed_at_utc": "2026-04-12T12:00:00Z",
+    "sst_observed_at_utc": "2026-04-25T04:00",
+    "chlorophyll_source": "NOAA CoastWatch ERDDAP (VIIRS weekly global)",
+    "sst_source": "Open-Meteo Marine API"
+  },
+  "sources": {
+    "chlorophyll_url": "https://coastwatch.noaa.gov/erddap/griddap/noaacwN20VIIRSchlaWeekly.csv?chlor_a[(last)][(0.0)][(33.9)][(-118.4)]",
+    "sst_url": "https://marine-api.open-meteo.com/v1/marine?latitude=33.9&longitude=-118.4&current=sea_surface_temperature&timezone=UTC"
+  }
+}
