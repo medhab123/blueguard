@@ -1183,7 +1183,14 @@ function LiveMap({
       }
     )
 
-    const simCurrentFeatures = pathToLineStringFeatures(simulationCurrentPath)
+    const simPathIn =
+      mapScope === "simulation" ? simulationCurrentPath : []
+    const simPathRec =
+      mapScope === "simulation" ? simulationRecommendedPath : []
+    const simTracksIn =
+      mapScope === "simulation" ? simulationWhaleTracks : []
+
+    const simCurrentFeatures = pathToLineStringFeatures(simPathIn)
     upsertGeojsonLayer(
       "sim-current-halo",
       simCurrentFeatures,
@@ -1218,7 +1225,7 @@ function LiveMap({
       }
     )
 
-    const simRecommendedFeatures = pathToLineStringFeatures(simulationRecommendedPath)
+    const simRecommendedFeatures = pathToLineStringFeatures(simPathRec)
     upsertGeojsonLayer(
       "sim-recommended-halo",
       simRecommendedFeatures,
@@ -1253,14 +1260,14 @@ function LiveMap({
       }
     )
 
-    upsertGeojsonLayer("sim-current-head", pathHeadPointFeatures(simulationCurrentPath), "circle", {
+    upsertGeojsonLayer("sim-current-head", pathHeadPointFeatures(simPathIn), "circle", {
       "circle-radius": 7.2,
       "circle-color": "#fb923c",
       "circle-opacity": 0.95,
       "circle-stroke-color": "#fff7ed",
       "circle-stroke-width": 1.6
     })
-    upsertGeojsonLayer("sim-recommended-head", pathHeadPointFeatures(simulationRecommendedPath), "circle", {
+    upsertGeojsonLayer("sim-recommended-head", pathHeadPointFeatures(simPathRec), "circle", {
       "circle-radius": 7.8,
       "circle-color": "#22c55e",
       "circle-opacity": 0.98,
@@ -1268,7 +1275,7 @@ function LiveMap({
       "circle-stroke-width": 1.8
     })
 
-    const simWhalePoints = simulationWhaleTracks.flatMap((track) =>
+    const simWhalePoints = simTracksIn.flatMap((track) =>
       (track || [])
         .filter((p) => Number.isFinite(p?.lat) && Number.isFinite(p?.lon))
         .map((p) => ({
@@ -2182,12 +2189,8 @@ function App() {
     () => ships.map((ship) => computeShipRisk(ship, whaleDataset, env.krillScore)),
     [ships, whaleDataset, env.krillScore]
   )
-  const simulationShip = useMemo(() => {
-    if (selectedShip) return selectedShip
-    if (!scoredShips.length) return null
-    const ranked = [...scoredShips].sort((a, b) => Number(b.riskScore || 0) - Number(a.riskScore || 0))
-    return ranked[0] || null
-  }, [selectedShip, scoredShips])
+  /** Only the user-selected vessel drives simulation — no silent fallback to highest-risk ship. */
+  const simulationShip = useMemo(() => selectedShip || null, [selectedShip])
   const shipSimulation = useMemo(() => {
     if (!simulationShip) return null
     try {
@@ -2627,11 +2630,6 @@ function App() {
     () => [...filteredShips].sort((a, b) => b.riskScore - a.riskScore).slice(0, 5),
     [filteredShips]
   )
-  useEffect(() => {
-    if (selectedShip) return
-    if (!topAlerts.length) return
-    setSelectedShip(topAlerts[0])
-  }, [selectedShip, topAlerts])
   const movingShips = useMemo(
     () => filteredShips.filter((ship) => Number(ship.sog || 0) >= 1),
     [filteredShips]

@@ -109,6 +109,11 @@ body.viewport-snap {
   gap: 16px;
 }
 
+/* Landing: first hero fills the viewport under the sticky topbar (true “full page” slide). */
+.page-home.layout {
+  margin-top: 0;
+}
+
 .page-impact {
   width: min(1840px, 98vw);
   gap: 18px;
@@ -354,8 +359,11 @@ body.viewport-snap {
 }
 
 .home-hero {
-  min-height: calc(100svh - 92px);
+  /* Prefer dynamic viewport height on mobile; fall back to svh. Top offset ≈ sticky topbar + safe area. */
+  min-height: calc(100dvh - 4.75rem - env(safe-area-inset-top, 0px));
+  min-height: calc(100svh - 4.75rem - env(safe-area-inset-top, 0px));
   margin-inline: calc(50% - 50vw);
+  box-sizing: border-box;
   border-radius: 0;
   border-left: 0;
   border-right: 0;
@@ -1373,7 +1381,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     padding: 30px 20px;
   }
   .home-hero {
-    min-height: calc(100svh - 90px);
+    min-height: calc(100dvh - 4.5rem - env(safe-area-inset-top, 0px));
+    min-height: calc(100svh - 4.5rem - env(safe-area-inset-top, 0px));
+    width: 100%;
+    max-width: 100%;
     margin-inline: 0;
     border-radius: var(--radius);
     border-left: 1px solid rgba(125, 145, 169, 0.25);
