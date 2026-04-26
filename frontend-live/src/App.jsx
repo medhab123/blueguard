@@ -25,6 +25,15 @@ const LIVE_API_REFRESH_MS = 5 * 60 * 1000
 const DEFAULT_WHALE_LIVE_WINDOW_DAYS = 180
 const DEFAULT_SHIP_LIVE_WINDOW_DAYS = 30
 const LIVE_WINDOW_OPTIONS_DAYS = [30, 90, 180, 365]
+const SIM_FORECAST_MINUTES = 30
+const SIM_STEP_MINUTES = 5
+const SIM_MIN_WHALE_CANDIDATES = 24
+const MOCK_RECENT_WHALES_COUNT = 180
+const FORECAST_HORIZON_OPTIONS = [
+  { id: "1d", label: "1 Day", minutes: 24 * 60, stepMinutes: 30 },
+  { id: "7d", label: "1 Week", minutes: 7 * 24 * 60, stepMinutes: 180 },
+  { id: "30d", label: "1 Month", minutes: 30 * 24 * 60, stepMinutes: 720 }
+]
 const MAP_DEFAULT_ZOOM_SHIPS = 11.5
 const MAP_DEFAULT_ZOOM_OTHER = 8
 const MAP_FOCUS_MIN_ZOOM = 11.5
@@ -66,7 +75,253 @@ const OBIS_FIELDS = [
   "sst"
 ]
 
-const NAV = ["Home", "Dashboard", "Whales", "Ships", "Impact", "About"]
+const NAV = ["Home", "Dashboard", "Impact", "About"]
+const HOME_HOW_IT_WORKS_STEPS = [
+  {
+    id: "detect",
+    badge: "01",
+    title: "Detect",
+    detail: "Whale sightings, acoustics, and environmental data are fused into a live corridor view."
+  },
+  {
+    id: "score",
+    badge: "02",
+    title: "Predict Risk",
+    detail: "BlueGuard models project ship and whale motion, then score collision probability in minutes."
+  },
+  {
+    id: "advise",
+    badge: "03",
+    title: "Advise Captains",
+    detail: "High-risk vessels receive speed and heading recommendations before entering danger zones."
+  },
+  {
+    id: "verify",
+    badge: "04",
+    title: "Verify Impact",
+    detail: "Reroutes and avoided encounters are logged so ports can measure ecological and economic gains."
+  }
+]
+const IMPACT_EVIDENCE_CARDS = [
+  {
+    id: "carbon",
+    kicker: "Climate",
+    title: "Whales are climate allies",
+    lead:
+      "Great whales function as long-term carbon stores and shape ocean processes that matter for the global climate system. Protecting them is a tangible piece of a broader ocean-climate strategy.",
+    reasonBullets: [
+      {
+        value: "~33 tons",
+        label: "Carbon per whale",
+        detail: "Research cited by the IMF frames a great whale as sequestering on the order of tens of tons of CO2 over a lifetime, keeping that carbon out of the atmosphere for long periods when populations recover."
+      },
+      {
+        value: "Centuries",
+        label: "Durable storage",
+        detail: "Whale carcasses that sink to the deep seafloor can lock away carbon in sediments, extending the benefit beyond the animal’s life at the surface."
+      },
+      {
+        value: "Ecosystems",
+        label: "Fertilizing seas",
+        detail: "Excretion and movement recycle nutrients that support phytoplankton; healthy phytoplankton underpins part of the ocean’s natural carbon drawdown."
+      },
+      {
+        value: "Policy",
+        label: "Worth pricing in",
+        detail: "Economic work on whale carbon underlines that valuation and protection can sit alongside other climate tools, making whale recovery an investable public good."
+      }
+    ],
+    image:
+      "https://images.unsplash.com/photo-1568430462989-44163eb1752f?auto=format&fit=crop&w=1200&q=80",
+    alt: "Whale surfacing in open ocean",
+    link: "https://www.imf.org/en/Publications/fandd/issues/2019/12/nature-work-climate-change-whale-carbon-pricing-chami",
+    cta: "Read IMF analysis"
+  },
+  {
+    id: "ship-strikes",
+    kicker: "Safety",
+    title: "Ship strikes are preventable",
+    lead:
+      "NOAA and partners emphasize that large whales and busy shipping often overlap, but risk is not fate: operational changes and planning can cut serious injury and mortality where commitment exists.",
+    reasonBullets: [
+      {
+        value: "Core threat",
+        label: "Speed & mass",
+        detail: "A fast-moving vessel in whale habitat is an outsized risk: impact energy scales with speed, and the animal often cannot avoid a closing hull in time."
+      },
+      {
+        value: "Corridors",
+        label: "Known hotspots",
+        detail: "Strikes concentrate where seasonal whale presence, feeding, and major routes coincide; mapping and seasonal measures target the worst overlaps first."
+      },
+      {
+        value: "Proven tools",
+        label: "Slowing & re-routing",
+        detail: "Regulators and port programs have tested speed limits, fairway shifts, and advisories so captains can reduce strike probability with planning."
+      },
+      {
+        value: "Shared duty",
+        label: "One coordinated effort",
+        detail: "Vessel operators, pilots, and ocean managers can align on alerts, training, and reporting so strikes are not an acceptable by-product of business as usual."
+      }
+    ],
+    image:
+      "https://images.pexels.com/photos/262353/pexels-photo-262353.jpeg?auto=compress&cs=tinysrgb&w=1200",
+    alt: "Cargo vessel crossing marine habitat",
+    link: "https://www.fisheries.noaa.gov/national/endangered-species-conservation/reducing-ship-strikes-large-whales",
+    cta: "See NOAA guidance"
+  },
+  {
+    id: "human-stakes",
+    kicker: "Human stakes",
+    title: "Why This Matters For Humans",
+    lead:
+      "Whale protection is not only a wildlife goal. It is a sustainability strategy that helps people by supporting climate stability, food systems, and resilient coastal economies.",
+    reasonBullets: [
+      {
+        value: "33 tons CO2",
+        label: "Climate Buffer",
+        detail: "A single great whale can store roughly 33 tons of carbon, helping stabilize climate systems people rely on."
+      },
+      {
+        value: "Ocean productivity",
+        label: "Food & fisheries",
+        detail: "Whales support nutrient cycling that helps sustain marine food webs, protecting fisheries and coastal food security."
+      },
+      {
+        value: "Ports + tourism",
+        label: "Coastal livelihoods",
+        detail: "Reducing strikes protects biodiversity while lowering disruption risk for shipping, tourism, and local coastal jobs."
+      },
+      {
+        value: "Resilient oceans",
+        label: "Human wellbeing",
+        detail: "Healthier oceans support cleaner air, climate resilience, and long-term community wellbeing for future generations."
+      }
+    ],
+    image:
+      "https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&w=1200&q=80",
+    alt: "Whale and ocean with vessel on horizon",
+    link: "https://www.imf.org/en/Publications/fandd/issues/2019/12/nature-work-climate-change-whale-carbon-pricing-chami",
+    cta: "IMF: whales & climate"
+  },
+  {
+    id: "ecosystem",
+    kicker: "Ocean health",
+    title: "Whales support ocean food webs",
+    lead:
+      "Whales are not passively drifting through the water column. Their movement, feeding, and waste transport energy and nutrients that ripple through food webs and productivity, as ocean science and NOAA public materials describe.",
+    reasonBullets: [
+      {
+        value: "Whale pump",
+        label: "Vertical mixing",
+        detail: "As whales surface and dive, they help move nutrients from depth toward sunlit water where tiny plants and animals can use them, feeding broader productivity."
+      },
+      {
+        value: "Nitrogen & iron",
+        label: "Fertilizer at scale",
+        detail: "Excretion releases key nutrients in forms other organisms can use, linking whale presence to blooms and prey availability over large areas."
+      },
+      {
+        value: "Prey & predators",
+        label: "Food web links",
+        detail: "Whales are huge consumers and carrion sources; their role ties together forage fish, krill, birds, and deeper benthic communities in connected systems."
+      },
+      {
+        value: "Biodiversity",
+        label: "Cascading value",
+        detail: "Losing top consumers can restructure who thrives in an ecosystem, so whale recovery is as much about restoring function as it is about saving individual species."
+      }
+    ],
+    image:
+      "https://images.unsplash.com/photo-1530053969600-caed2596d242?auto=format&fit=crop&w=1200&q=80",
+    alt: "Whale breaching near coastline",
+    link: "https://oceanservice.noaa.gov/facts/whales.html",
+    cta: "Explore NOAA whale facts"
+  },
+  {
+    id: "urgency",
+    kicker: "Recovery",
+    title: "Blue whales remain endangered",
+    lead:
+      "NOAA and international listings remind us that the largest animals on Earth have not fully recovered from industrial-era pressure; human activity at sea still shapes their outlook.",
+    reasonBullets: [
+      {
+        value: "ESA & global",
+        label: "Still protected",
+        detail: "Blue whales remain listed in the U.S. under the Endangered Species Act; international status underscores that recovery is incomplete and not automatic without care."
+      },
+      {
+        value: "Vessel strikes",
+        label: "Ongoing risk",
+        detail: "In busy feeding and migration areas, a single serious strike can remove breeding-age animals from a still-limited modern population, slowing any upward trend."
+      },
+      {
+        value: "Habitat & prey",
+        label: "Ecosystem context",
+        detail: "Challenges include shifts in forage, ocean noise, and climate-linked changes that affect where and how whales can feed successfully."
+      },
+      {
+        value: "Stewardship",
+        label: "We set the path",
+        detail: "Proactive management—shipping measures, data sharing, and enforcement—turns a cautionary status into a managed recovery with measurable milestones."
+      }
+    ],
+    image:
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
+    alt: "Open ocean with distant vessel",
+    link: "https://www.fisheries.noaa.gov/species/blue-whale",
+    cta: "Read species status"
+  },
+  {
+    id: "coexistence",
+    kicker: "Operations",
+    title: "Shipping can adapt quickly",
+    lead:
+      "Conservation bodies and regulators treat strike risk as a management problem. Adjustments to how and where ships move can be implemented with existing technology and good communication.",
+    reasonBullets: [
+      {
+        value: "Speed limits",
+        label: "Time to react",
+        detail: "Slowing in designated zones is a widely discussed lever: lower impact speed gives whales and mariners a larger margin in shared water."
+      },
+      {
+        value: "Rerouting",
+        label: "Geometry that helps",
+        detail: "Shifting traffic away from feeding aggregations and sensitive grounds can mean large risk reductions for modest added distance in many corridors."
+      },
+      {
+        value: "IWC & guidelines",
+        label: "Proven playbooks",
+        detail: "International and regional ship-strike work outlines mitigation menus so operators can match measures to local whale presence, weather, and traffic."
+      },
+      {
+        value: "Today’s toolkit",
+        label: "Agents & AIS",
+        detail: "Fusing whale intelligence with navigation decisions is the kind of intervention BlueGuard-style systems are built to support in real time."
+      }
+    ],
+    image:
+      "https://images.pexels.com/photos/1295036/pexels-photo-1295036.jpeg?auto=compress&cs=tinysrgb&w=1200",
+    alt: "Cargo ship crossing blue sea",
+    link: "https://iwc.int/management-and-conservation/anthropogenic-threats/ship-strikes",
+    cta: "See mitigation actions"
+  }
+]
+const IMPACT_ARTICLE_LINKS = [
+  {
+    title: "NOAA: Reducing ship strikes to large whales",
+    href: "https://www.fisheries.noaa.gov/national/endangered-species-conservation/reducing-ship-strikes-large-whales"
+  },
+  {
+    title: "IMO: Guidance on minimizing whale collisions",
+    href: "https://www.imo.org/en/OurWork/Environment/Pages/Particularly-Sensitive-Sea-Areas.aspx"
+  },
+  {
+    title: "IWC: Vessel strikes and whale conservation",
+    href: "https://iwc.int/management-and-conservation/anthropogenic-threats/ship-strikes"
+  }
+]
 const SPECIES_COMMON_NAMES = {
   "Megaptera novaeangliae": "Humpback whale",
   "Balaenoptera musculus": "Blue whale",
@@ -201,6 +456,362 @@ const haversineKm = (lat1, lon1, lat2, lon2) => {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
+
+const headingBetween = (lat1, lon1, lat2, lon2) => {
+  const phi1 = (lat1 * Math.PI) / 180
+  const phi2 = (lat2 * Math.PI) / 180
+  const dLon = ((lon2 - lon1) * Math.PI) / 180
+  const y = Math.sin(dLon) * Math.cos(phi2)
+  const x = Math.cos(phi1) * Math.sin(phi2) - Math.sin(phi1) * Math.cos(phi2) * Math.cos(dLon)
+  const bearing = (Math.atan2(y, x) * 180) / Math.PI
+  return ((bearing % 360) + 360) % 360
+}
+
+const hashToUnit = (seed) => {
+  let hash = 0
+  const text = String(seed || "blueguard")
+  for (let i = 0; i < text.length; i += 1) {
+    hash = (hash << 5) - hash + text.charCodeAt(i)
+    hash |= 0
+  }
+  return Math.abs(hash % 10000) / 10000
+}
+
+const seededRandom = (seed) => {
+  let t = seed + 0x6d2b79f5
+  t = Math.imul(t ^ (t >>> 15), t | 1)
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+}
+
+const coastlineLonForLat = (lat) => {
+  // Conservative seaward envelope for the SoCal coastline.
+  // Values are intentionally pushed well WEST of the real shoreline so generated
+  // mock points stay clearly in open water (San Pedro Channel, Catalina Channel,
+  // Santa Monica Bay) and never land on Palos Verdes peninsula or the harbor.
+  if (lat <= 33.4) return -117.95   // San Diego coast / open ocean approach
+  if (lat <= 33.55) return -118.0   // Newport / Huntington
+  if (lat <= 33.7) return -118.2    // approaches to Long Beach harbor
+  if (lat <= 33.85) return -118.5   // west of Palos Verdes peninsula
+  if (lat <= 34.0) return -118.6    // Santa Monica Bay (offshore)
+  return -118.75
+}
+
+const isLikelyOceanPoint = (lat, lon) => {
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return false
+  if (!inLaBounds(lat, lon)) return false
+
+  // Hard guard: nothing east of -118.0 is treated as ocean (cuts inland LA basin).
+  if (lon > -118.0) return false
+
+  // Hard guard: nothing inside the Palos Verdes / harbor land bulge.
+  // Roughly the peninsula footprint is lat 33.70-33.82, lon -118.42 to -118.18.
+  if (lat >= 33.7 && lat <= 33.82 && lon >= -118.42 && lon <= -118.18) return false
+
+  // Conservative coastline test: must be at least ~1.5 km seaward of envelope.
+  return lon <= coastlineLonForLat(lat) - 0.015
+}
+
+const generateMockRecentWhales = (count = MOCK_RECENT_WHALES_COUNT, center = LA_CENTER) => {
+  const nowMs = Date.now()
+  const speciesPool = [
+    { scientificName: "Balaenoptera musculus", commonName: "Blue whale", weight: 0.28 },
+    { scientificName: "Megaptera novaeangliae", commonName: "Humpback whale", weight: 0.32 },
+    { scientificName: "Balaenoptera physalus", commonName: "Fin whale", weight: 0.2 },
+    { scientificName: "Eschrichtius robustus", commonName: "Gray whale", weight: 0.2 }
+  ]
+  const totalWeight = speciesPool.reduce((sum, row) => sum + row.weight, 0)
+
+  const pickSpecies = (u) => {
+    let cursor = 0
+    for (const row of speciesPool) {
+      cursor += row.weight / totalWeight
+      if (u <= cursor) return row
+    }
+    return speciesPool[0]
+  }
+
+  return Array.from({ length: count }).map((_, idx) => {
+    const u1 = seededRandom(10101 + idx * 13)
+    let u2 = seededRandom(20202 + idx * 17)
+    let u3 = seededRandom(30303 + idx * 19)
+    let u4 = seededRandom(40404 + idx * 23)
+    let u5 = seededRandom(50505 + idx * 29)
+    const species = pickSpecies(u1)
+    let point = destinationPointKm(center.lat, center.lon, 262, 20)
+    let foundWater = false
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      const radiusKm = 8 + u2 * 46
+      const bearingDeg = u3 * 360
+      const candidate = destinationPointKm(center.lat, center.lon, bearingDeg, radiusKm)
+      if (isLikelyOceanPoint(candidate.lat, candidate.lon)) {
+        point = candidate
+        foundWater = true
+        break
+      }
+      u2 = seededRandom(20202 + idx * 17 + attempt * 131)
+      u3 = seededRandom(30303 + idx * 19 + attempt * 151)
+    }
+    if (!foundWater) {
+      point = destinationPointKm(center.lat, center.lon, 250 + (idx % 20), 22 + (idx % 12))
+    }
+    const observedAt = new Date(nowMs - u4 * 1000 * 60 * 60 * 24 * 14).toISOString()
+    const individualCount = 1 + Math.floor(u5 * 4)
+    return {
+      id: `mock-recent-whale-${idx}`,
+      occurrenceId: `mock-recent-whale-${idx}`,
+      scientificName: species.scientificName,
+      species: species.commonName,
+      commonName: species.commonName,
+      observedAt,
+      lat: point.lat,
+      lon: point.lon,
+      basisOfRecord: "ModelSimulation",
+      count: individualCount,
+      coordinateUncertaintyMeters: Math.round(100 + u2 * 500),
+      depthM: Math.round(40 + u3 * 180),
+      seaSurfaceTempC: Number((13 + u4 * 6).toFixed(2)),
+      source: "BlueGuard Mock Generator",
+      sourceSystem: "MOCK_RECENT"
+    }
+  })
+}
+
+const projectTrack = ({ lat, lon, headingDeg, speedKnots, minutes = SIM_FORECAST_MINUTES, stepMin = SIM_STEP_MINUTES }) => {
+  const points = [{ lat, lon, tMin: 0 }]
+  const steps = Math.max(1, Math.floor(minutes / stepMin))
+  const kmPerStep = Math.max(0, Number(speedKnots || 0)) * 1.852 * (stepMin / 60)
+  let curLat = lat
+  let curLon = lon
+  for (let i = 1; i <= steps; i += 1) {
+    const next = destinationPointKm(curLat, curLon, headingDeg, kmPerStep)
+    curLat = next.lat
+    curLon = next.lon
+    points.push({ lat: curLat, lon: curLon, tMin: i * stepMin })
+  }
+  return points
+}
+
+const trimPathToProgress = (path, progress01) => {
+  if (!Array.isArray(path) || path.length === 0) return []
+  const progress = clamp(progress01, 0, 1)
+  const maxIdx = Math.max(1, Math.floor((path.length - 1) * progress))
+  return path.slice(0, maxIdx + 1)
+}
+
+const lastPoint = (path) => (Array.isArray(path) && path.length ? path[path.length - 1] : null)
+
+/** GeoJSON LineString from path points; coerces lon/lat so Mapbox always receives numbers. */
+const pathToLineStringFeatures = (path) => {
+  const coords = (Array.isArray(path) ? path : [])
+    .map((p) => [Number(p?.lon), Number(p?.lat)])
+    .filter(([lo, la]) => Number.isFinite(lo) && Number.isFinite(la))
+  if (coords.length < 2) return []
+  return [
+    {
+      type: "Feature",
+      geometry: { type: "LineString", coordinates: coords },
+      properties: {}
+    }
+  ]
+}
+
+const pathHeadPointFeatures = (path) => {
+  const last = lastPoint(path)
+  if (!last) return []
+  const lo = Number(last.lon)
+  const la = Number(last.lat)
+  if (!Number.isFinite(lo) || !Number.isFinite(la)) return []
+  return [{ type: "Feature", geometry: { type: "Point", coordinates: [lo, la] }, properties: {} }]
+}
+
+const kalmanSmoothSeries = (values, processNoise = 0.08, measurementNoise = 1.8) => {
+  const clean = values.filter((v) => Number.isFinite(v))
+  if (!clean.length) return null
+  let estimate = clean[0]
+  let p = 1
+  for (let i = 1; i < clean.length; i += 1) {
+    p += processNoise
+    const k = p / (p + measurementNoise)
+    estimate = estimate + k * (clean[i] - estimate)
+    p = (1 - k) * p
+  }
+  return estimate
+}
+
+const deriveShipMotionFromHistory = (ship, historyPoints = []) => {
+  const points = (historyPoints || [])
+    .filter((p) => Number.isFinite(p?.lat) && Number.isFinite(p?.lon))
+    .slice(-10)
+  if (points.length < 2) {
+    return {
+      headingDeg: Number.isFinite(Number(ship?.heading)) ? Number(ship.heading) : 100,
+      speedKnots: clamp(Number(ship?.sog || 0), 0, 30),
+      source: "ais_snapshot"
+    }
+  }
+
+  const headingSamples = []
+  const speedSamples = []
+  for (let i = 1; i < points.length; i += 1) {
+    const a = points[i - 1]
+    const b = points[i]
+    const heading = headingBetween(a.lat, a.lon, b.lat, b.lon)
+    headingSamples.push(heading)
+
+    const tA = toEpochMs(a.observedAt)
+    const tB = toEpochMs(b.observedAt)
+    if (tA === null || tB === null || tB <= tA) continue
+    const dtHours = (tB - tA) / (1000 * 60 * 60)
+    const distanceKm = haversineKm(a.lat, a.lon, b.lat, b.lon)
+    const knots = (distanceKm / dtHours) / 1.852
+    if (Number.isFinite(knots)) speedSamples.push(knots)
+  }
+
+  // Smooth heading by converting to vector components to avoid wrap-around artifacts.
+  const headingX = headingSamples.map((h) => Math.cos((h * Math.PI) / 180))
+  const headingY = headingSamples.map((h) => Math.sin((h * Math.PI) / 180))
+  const smoothX = kalmanSmoothSeries(headingX, 0.05, 0.6)
+  const smoothY = kalmanSmoothSeries(headingY, 0.05, 0.6)
+  let headingDeg = Number.isFinite(Number(ship?.heading)) ? Number(ship.heading) : 100
+  if (smoothX !== null && smoothY !== null) {
+    headingDeg = ((Math.atan2(smoothY, smoothX) * 180) / Math.PI + 360) % 360
+  }
+  const smoothedSpeed = kalmanSmoothSeries(speedSamples, 0.08, 2.4)
+  const fallbackSpeed = clamp(Number(ship?.sog || 0), 0, 30)
+  const speedKnots = clamp(smoothedSpeed ?? fallbackSpeed, 0, 30)
+
+  return { headingDeg, speedKnots, source: "kalman_history" }
+}
+
+const ensureWhaleCandidates = (ship, whales, envKrillScore) => {
+  const recentCutoffMs = Date.now() - 45 * 24 * 60 * 60 * 1000
+  const nearby = whales
+    .filter((w) => Number.isFinite(w.lat) && Number.isFinite(w.lon))
+    .filter((w) => {
+      const ts = toEpochMs(w.observedAt)
+      return ts === null || ts >= recentCutoffMs
+    })
+    .map((w) => ({ ...w, distKm: haversineKm(ship.lat, ship.lon, w.lat, w.lon) }))
+    .sort((a, b) => a.distKm - b.distKm)
+    .filter((w) => w.distKm <= 80)
+    .slice(0, SIM_MIN_WHALE_CANDIDATES + 8)
+
+  const syntheticNeeded = Math.max(0, SIM_MIN_WHALE_CANDIDATES - nearby.length)
+  if (!syntheticNeeded) return nearby
+
+  const score = clamp(Number(envKrillScore || 0), 0, 10)
+  const maxRadiusKm = 22 - score * 0.8
+  const synthetic = Array.from({ length: syntheticNeeded }).map((_, idx) => {
+    const seed = `${ship.mmsi || ship.shipName || "ship"}-${idx}`
+    let p = destinationPointKm(ship.lat, ship.lon, 260, 6)
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const angle = hashToUnit(`${seed}-a-${attempt}`) * 360
+      const radius = 2 + hashToUnit(`${seed}-r-${attempt}`) * maxRadiusKm
+      const candidate = destinationPointKm(ship.lat, ship.lon, angle, radius)
+      if (isLikelyOceanPoint(candidate.lat, candidate.lon)) {
+        p = candidate
+        break
+      }
+    }
+    return {
+      id: `sim-whale-${seed}`,
+      occurrenceId: `sim-whale-${seed}`,
+      species: "Synthetic Blue Whale",
+      sourceSystem: "SIMULATION",
+      lat: p.lat,
+      lon: p.lon,
+      observedAt: new Date().toISOString(),
+      distKm: haversineKm(ship.lat, ship.lon, p.lat, p.lon)
+    }
+  })
+
+  return [...nearby, ...synthetic]
+}
+
+const speciesMigrationHeading = (scientificName, observedAtIso) => {
+  const month = Number(new Date(observedAtIso || Date.now()).getUTCMonth()) + 1
+  if (scientificName === "Balaenoptera musculus") {
+    // Blue whales typically trend NW in CA feeding season.
+    return month >= 4 && month <= 10 ? 315 : 165
+  }
+  if (scientificName === "Megaptera novaeangliae") {
+    return month >= 4 && month <= 10 ? 300 : 150
+  }
+  if (scientificName === "Eschrichtius robustus") {
+    return month >= 3 && month <= 7 ? 320 : 140
+  }
+  if (scientificName === "Balaenoptera physalus") {
+    return 305
+  }
+  return 300
+}
+
+const projectWhaleTrack = (
+  whale,
+  shipHeadingDeg,
+  envKrillScore,
+  horizonMinutes = SIM_FORECAST_MINUTES,
+  stepMinutes = SIM_STEP_MINUTES
+) => {
+  const seed = whale.occurrenceId || whale.id || whale.species || "whale"
+  const migrationHeading = speciesMigrationHeading(whale.scientificName, whale.observedAt)
+  const envBoost = clamp(Number(envKrillScore || 0) / 10, 0, 1)
+  const baseSpeed = 1.6 + hashToUnit(`${seed}-spd`) * 2.0 + envBoost * 1.0
+  const steps = Math.max(1, Math.floor(horizonMinutes / stepMinutes))
+  const points = [{ lat: whale.lat, lon: whale.lon, tMin: 0 }]
+  let curLat = whale.lat
+  let curLon = whale.lon
+
+  for (let i = 1; i <= steps; i += 1) {
+    const noise = (hashToUnit(`${seed}-noise-${i}`) - 0.5) * 18
+    const drift = Math.sin((i / steps) * Math.PI * 1.5) * 6
+    const heading = ((migrationHeading * 0.75 + shipHeadingDeg * 0.1 + (migrationHeading + noise + drift) * 0.15) % 360 + 360) % 360
+    const stepSpeed = clamp(baseSpeed + (hashToUnit(`${seed}-spd-${i}`) - 0.5) * 0.6, 1.2, 4.8)
+    const kmPerStep = stepSpeed * 1.852 * (stepMinutes / 60)
+    const next = destinationPointKm(curLat, curLon, heading, kmPerStep)
+    curLat = next.lat
+    curLon = next.lon
+    points.push({ lat: curLat, lon: curLon, tMin: i * stepMinutes })
+  }
+
+  return points
+}
+
+const scoreRouteRisk = (shipPath, whaleTracks, speedKnots, envKrillScore) => {
+  let proximityRisk = 0
+  let minCpaKm = Number.POSITIVE_INFINITY
+  for (let i = 0; i < shipPath.length; i += 1) {
+    const shipPoint = shipPath[i]
+    if (!shipPoint) continue
+    for (const whaleTrack of whaleTracks) {
+      const whalePoint = whaleTrack[Math.min(i, whaleTrack.length - 1)]
+      if (!whalePoint) continue
+      const dKm = haversineKm(shipPoint.lat, shipPoint.lon, whalePoint.lat, whalePoint.lon)
+      if (dKm < minCpaKm) minCpaKm = dKm
+      const proximity = clamp((8 - dKm) / 8, 0, 1)
+      const timeWeight = 1 - i / Math.max(1, shipPath.length - 1)
+      proximityRisk += proximity * (0.7 + 0.3 * timeWeight)
+    }
+  }
+  const normalizedProximity = whaleTracks.length
+    ? proximityRisk / (shipPath.length * whaleTracks.length)
+    : 0
+  const speedRisk = clamp(Number(speedKnots || 0) / 20, 0, 1)
+  const envRisk = clamp(Number(envKrillScore || 0) / 10, 0, 1)
+  const totalRisk = clamp(normalizedProximity * 0.68 + speedRisk * 0.2 + envRisk * 0.12, 0, 1)
+  return { totalRisk, minCpaKm }
+}
+
+const collisionProbability = (cpaKm, speedKnots, whaleCount) => {
+  const cpaFactor = clamp((3.5 - cpaKm) / 3.5, 0, 1)
+  const speedFactor = clamp(Number(speedKnots || 0) / 18, 0, 1)
+  const whaleFactor = clamp(whaleCount / 24, 0, 1)
+  const raw = cpaFactor * 0.55 + speedFactor * 0.25 + whaleFactor * 0.2
+  return clamp(raw, 0, 1)
+}
+
 const riskBand = (score) => {
   if (score >= 40) return "high"
   if (score >= 25) return "medium"
@@ -291,15 +902,21 @@ function LiveMap({
   focusTarget,
   whalePathPoints = [],
   shipPathPoints = [],
+  simulationCurrentPath = [],
+  simulationRecommendedPath = [],
+  simulationWhaleTracks = [],
   mapScope = "dashboard"
 }) {
   const [mapReadyTick, setMapReadyTick] = useState(0)
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const markerRefs = useRef([])
+  const simulationDotRefs = useRef([])
   const popupRef = useRef(null)
   const mapInstanceIdRef = useRef(`live-map-${Math.random().toString(36).slice(2)}`)
   const pinnedViewUntilRef = useRef(0)
+  const initialViewSetRef = useRef(false)
+  const lastScopeRef = useRef(null)
   const lastFocusedRef = useRef(null)
   const onWhaleSelectRef = useRef(onWhaleSelect)
   const onShipSelectRef = useRef(onShipSelect)
@@ -319,10 +936,13 @@ function LiveMap({
       container: containerRef.current,
       style: "mapbox://styles/mapbox/dark-v11",
       center:
-        mapScope === "ships" || mapScope === "dashboard"
+        mapScope === "ships" || mapScope === "dashboard" || mapScope === "simulation"
           ? [LA_CENTER.lon, LA_CENTER.lat]
           : [DEFAULT_CENTER.lon, DEFAULT_CENTER.lat],
-      zoom: mapScope === "ships" || mapScope === "dashboard" ? MAP_DEFAULT_ZOOM_SHIPS : MAP_DEFAULT_ZOOM_OTHER
+      zoom:
+        mapScope === "ships" || mapScope === "dashboard" || mapScope === "simulation"
+          ? MAP_DEFAULT_ZOOM_SHIPS
+          : MAP_DEFAULT_ZOOM_OTHER
     })
     mapRef.current.addControl(new mapboxgl.NavigationControl(), "top-right")
     mapRef.current.on("load", () => setMapReadyTick((v) => v + 1))
@@ -330,6 +950,8 @@ function LiveMap({
     return () => {
       markerRefs.current.forEach((m) => m.remove())
       markerRefs.current = []
+      simulationDotRefs.current.forEach((m) => m.remove())
+      simulationDotRefs.current = []
       popupRef.current?.remove()
       popupRef.current = null
       mapRef.current?.remove()
@@ -344,6 +966,8 @@ function LiveMap({
 
     markerRefs.current.forEach((m) => m.remove())
     markerRefs.current = []
+    simulationDotRefs.current.forEach((m) => m.remove())
+    simulationDotRefs.current = []
     popupRef.current?.remove()
     popupRef.current = null
 
@@ -355,9 +979,9 @@ function LiveMap({
       const ageDays =
         observedMs === null ? Number.POSITIVE_INFINITY : Math.floor((Date.now() - observedMs) / (1000 * 60 * 60 * 24))
       const recencyClass = ageDays <= 7 ? "recent" : ageDays <= 30 ? "mid" : "old"
-      const speciesClass = WHALE_SPECIES_COLOR[w.scientificName] || WHALE_SPECIES_COLOR.default
       const markerEl = document.createElement("div")
-      markerEl.className = `map-marker whale ${speciesClass} ${recencyClass}`
+      const isMock = String(w.sourceSystem || "").toUpperCase() === "MOCK_RECENT"
+      markerEl.className = `map-marker whale ${isMock ? "mock" : "real"} ${recencyClass}`
       markerEl.style.cursor = "pointer"
       markerEl.addEventListener("click", () => {
         if (onWhaleSelectRef.current) onWhaleSelectRef.current(w)
@@ -399,12 +1023,36 @@ function LiveMap({
       points += 1
     })
 
+    if (mapScope === "simulation") {
+      simulationCurrentPath
+        .filter((p) => Number.isFinite(p?.lon) && Number.isFinite(p?.lat))
+        .forEach((p) => bounds.extend([p.lon, p.lat]))
+      simulationRecommendedPath
+        .filter((p) => Number.isFinite(p?.lon) && Number.isFinite(p?.lat))
+        .forEach((p) => bounds.extend([p.lon, p.lat]))
+      simulationWhaleTracks
+        .flatMap((track) => track || [])
+        .filter((p) => Number.isFinite(p?.lon) && Number.isFinite(p?.lat))
+        .slice(0, 300)
+        .forEach((p) => bounds.extend([p.lon, p.lat]))
+    }
+
     const upsertGeojsonLayer = (idPrefix, features, type, paint, layout) => {
       const sourceId = `${mapInstanceIdRef.current}-${idPrefix}-source`
       const layerId = `${mapInstanceIdRef.current}-${idPrefix}-layer`
       const geojson = { type: "FeatureCollection", features }
       if (map.getSource(sourceId)) {
         map.getSource(sourceId).setData(geojson)
+        if (paint && map.getLayer(layerId)) {
+          Object.entries(paint).forEach(([k, v]) => {
+            try { map.setPaintProperty(layerId, k, v) } catch (_) { /* paint key may not apply */ }
+          })
+        }
+        if (layout && map.getLayer(layerId)) {
+          Object.entries(layout).forEach(([k, v]) => {
+            try { map.setLayoutProperty(layerId, k, v) } catch (_) { /* layout key may not apply */ }
+          })
+        }
       } else {
         map.addSource(sourceId, { type: "geojson", data: geojson })
         map.addLayer({
@@ -535,44 +1183,188 @@ function LiveMap({
       }
     )
 
-    const isPinned = Date.now() < pinnedViewUntilRef.current
-    if (points > 0 && !isPinned && mapScope !== "ships") {
-      map.fitBounds(bounds, { padding: 32, maxZoom: MAP_FIT_MAX_ZOOM, duration: 700 })
-    } else if (!isPinned && mapScope === "ships") {
-      map.easeTo({
-        center: [LA_CENTER.lon, LA_CENTER.lat],
-        zoom: MAP_DEFAULT_ZOOM_SHIPS,
-        duration: 700
+    const simCurrentFeatures = pathToLineStringFeatures(simulationCurrentPath)
+    upsertGeojsonLayer(
+      "sim-current-halo",
+      simCurrentFeatures,
+      "line",
+      {
+        "line-width": 9,
+        "line-color": "#020617",
+        "line-opacity": 0.5
+      },
+      { "line-cap": "round", "line-join": "round" }
+    )
+    upsertGeojsonLayer(
+      "sim-current-route",
+      simCurrentFeatures,
+      "line",
+      {
+        "line-width": 5.5,
+        "line-color": "#fb923c",
+        "line-opacity": 1,
+        "line-dasharray": [2.5, 1.5]
+      },
+      { "line-cap": "round", "line-join": "round" }
+    )
+    upsertGeojsonLayer(
+      "sim-current-dots",
+      [],
+      "circle",
+      {
+        "circle-radius": 0,
+        "circle-color": "#fb923c",
+        "circle-opacity": 0
+      }
+    )
+
+    const simRecommendedFeatures = pathToLineStringFeatures(simulationRecommendedPath)
+    upsertGeojsonLayer(
+      "sim-recommended-halo",
+      simRecommendedFeatures,
+      "line",
+      {
+        "line-width": 9.2,
+        "line-color": "#020617",
+        "line-opacity": 0.5
+      },
+      { "line-cap": "round", "line-join": "round" }
+    )
+    upsertGeojsonLayer(
+      "sim-recommended-route",
+      simRecommendedFeatures,
+      "line",
+      {
+        "line-width": 5.8,
+        "line-color": "#22c55e",
+        "line-opacity": 1,
+        "line-dasharray": [2.5, 1.5]
+      },
+      { "line-cap": "round", "line-join": "round" }
+    )
+    upsertGeojsonLayer(
+      "sim-recommended-dots",
+      [],
+      "circle",
+      {
+        "circle-radius": 0,
+        "circle-color": "#22c55e",
+        "circle-opacity": 0
+      }
+    )
+
+    upsertGeojsonLayer("sim-current-head", pathHeadPointFeatures(simulationCurrentPath), "circle", {
+      "circle-radius": 7.2,
+      "circle-color": "#fb923c",
+      "circle-opacity": 0.95,
+      "circle-stroke-color": "#fff7ed",
+      "circle-stroke-width": 1.6
+    })
+    upsertGeojsonLayer("sim-recommended-head", pathHeadPointFeatures(simulationRecommendedPath), "circle", {
+      "circle-radius": 7.8,
+      "circle-color": "#22c55e",
+      "circle-opacity": 0.98,
+      "circle-stroke-color": "#ecfdf5",
+      "circle-stroke-width": 1.8
+    })
+
+    const simWhalePoints = simulationWhaleTracks.flatMap((track) =>
+      (track || [])
+        .filter((p) => Number.isFinite(p?.lat) && Number.isFinite(p?.lon))
+        .map((p) => ({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [Number(p.lon), Number(p.lat)] },
+          properties: { radius: 1800 }
+        }))
+    )
+    upsertGeojsonLayer(
+      "sim-whale-cloud",
+      simWhalePoints.slice(0, 260),
+      "circle",
+      {
+        "circle-radius": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          4,
+          ["*", ["get", "radius"], 0.0006],
+          10,
+          ["*", ["get", "radius"], 0.0038]
+        ],
+        "circle-color": "#60a5fa",
+        "circle-opacity": 0.14,
+        "circle-stroke-color": "#3b82f6",
+        "circle-stroke-opacity": 0.4,
+        "circle-stroke-width": 1
+      }
+    )
+
+    if (mapScope === "simulation") {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => map.resize())
       })
-    } else if (points === 0 && !isPinned) {
-      map.easeTo({ center: [DEFAULT_CENTER.lon, DEFAULT_CENTER.lat], zoom: 2, duration: 700 })
     }
-  }, [whales, ships, mapScope, mapReadyTick])
+
+    // Prevent jitter: only auto-frame on first load or scope switch.
+    const isPinned = Date.now() < pinnedViewUntilRef.current
+    const scopeChanged = lastScopeRef.current !== mapScope
+    if (scopeChanged) lastScopeRef.current = mapScope
+    const shouldAutoFrame = !isPinned && (scopeChanged || !initialViewSetRef.current)
+    if (shouldAutoFrame) {
+      if (points > 0 && mapScope !== "ships") {
+        map.fitBounds(bounds, {
+          padding: mapScope === "simulation" ? 48 : 32,
+          maxZoom: mapScope === "simulation" ? 13.5 : MAP_FIT_MAX_ZOOM,
+          duration: 700
+        })
+      } else if (mapScope === "ships") {
+        map.easeTo({
+          center: [LA_CENTER.lon, LA_CENTER.lat],
+          zoom: MAP_DEFAULT_ZOOM_SHIPS,
+          duration: 700
+        })
+      } else {
+        map.easeTo({ center: [DEFAULT_CENTER.lon, DEFAULT_CENTER.lat], zoom: 2, duration: 700 })
+      }
+      initialViewSetRef.current = true
+    }
+  }, [
+    whales,
+    ships,
+    mapScope,
+    mapReadyTick,
+    simulationCurrentPath,
+    simulationRecommendedPath,
+    simulationWhaleTracks
+  ])
 
   useEffect(() => {
     const map = mapRef.current
     if (!map || !focusTarget) return
+    const focusLat = Number(focusTarget.lat)
+    const focusLon = Number(focusTarget.lon)
+    if (!Number.isFinite(focusLat) || !Number.isFinite(focusLon)) return
     const last = lastFocusedRef.current
     const sameTarget =
       last &&
       last.key === focusTarget.key &&
-      Math.abs(last.lat - focusTarget.lat) < 1e-6 &&
-      Math.abs(last.lon - focusTarget.lon) < 1e-6
+      Math.abs(last.lat - focusLat) < 1e-6 &&
+      Math.abs(last.lon - focusLon) < 1e-6
     if (sameTarget) return
 
     pinnedViewUntilRef.current = Date.now() + 30_000
     lastFocusedRef.current = {
-      lat: focusTarget.lat,
-      lon: focusTarget.lon,
+      lat: focusLat,
+      lon: focusLon,
       key: focusTarget.key || null
     }
     map.flyTo({
-      center: [focusTarget.lon, focusTarget.lat],
-      zoom: Math.max(map.getZoom(), MAP_FOCUS_MIN_ZOOM),
+      center: [focusLon, focusLat],
+      zoom: Math.max(map.getZoom(), mapScope === "simulation" ? 11.8 : MAP_FOCUS_MIN_ZOOM),
       duration: 900,
       essential: true
     })
-  }, [focusTarget])
+  }, [focusTarget, mapScope])
 
   useEffect(() => {
     const map = mapRef.current
@@ -979,6 +1771,8 @@ function App() {
   const [shipTrackHistory, setShipTrackHistory] = useState({})
   const [selectedWhale, setSelectedWhale] = useState(null)
   const [selectedShip, setSelectedShip] = useState(null)
+  const [simulationPanelOpen, setSimulationPanelOpen] = useState(false)
+  const [simulationFocusTarget, setSimulationFocusTarget] = useState(null)
   const [focusTarget, setFocusTarget] = useState(null)
   const [aisKey, setAisKey] = useState(() => ENV_AIS_KEY || getStoredAisKey())
   const [aisConnected, setAisConnected] = useState(false)
@@ -1009,10 +1803,15 @@ function App() {
   const [shipLiveWindowDays, setShipLiveWindowDays] = useState(DEFAULT_SHIP_LIVE_WINDOW_DAYS)
   const [trackerTab, setTrackerTab] = useState("whales")
   const [demoScenarioEnabled, setDemoScenarioEnabled] = useState(false)
-  const [showAisKey, setShowAisKey] = useState(false)
+  const [useMockRecentWhales, setUseMockRecentWhales] = useState(true)
+  const [forecastHorizonId, setForecastHorizonId] = useState("1d")
+  const [forecastPlaying, setForecastPlaying] = useState(true)
+  const [forecastProgress, setForecastProgress] = useState(0)
   const [nowMs, setNowMs] = useState(() => Date.now())
   const advisorySentRef = useRef(new Set())
   const [advisoryTick, setAdvisoryTick] = useState(0)
+  const layoutRef = useRef(null)
+  const heroRef = useRef(null)
 
   useEffect(() => {
     const id = window.setInterval(() => setNowMs(Date.now()), 60_000)
@@ -1028,6 +1827,136 @@ function App() {
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
   }, [])
+
+  useEffect(() => {
+    if (!NAV.includes(activePage)) {
+      setActivePage("Home")
+    }
+  }, [activePage])
+
+  useEffect(() => {
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
+    const enableSnapViewport = activePage === "Impact" && !reduceMotion
+    const html = document.documentElement
+    const body = document.body
+
+    html.classList.toggle("viewport-snap", enableSnapViewport)
+    body.classList.toggle("viewport-snap", enableSnapViewport)
+
+    if (activePage === "Impact") {
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    }
+
+    return () => {
+      html.classList.remove("viewport-snap")
+      body.classList.remove("viewport-snap")
+    }
+  }, [activePage])
+
+  useEffect(() => {
+    const root = layoutRef.current
+    if (!root) return undefined
+
+    const revealTargets = Array.from(
+      root.querySelectorAll("section, article, .page-title, .page-subtitle")
+    )
+    if (!revealTargets.length) return undefined
+
+    revealTargets.forEach((node, index) => {
+      node.classList.add("scroll-reveal")
+      node.style.setProperty("--reveal-delay", `${Math.min(index * 55, 420)}ms`)
+    })
+
+    if (activePage === "Impact") {
+      // Impact uses full-screen sections; ensure they never remain hidden by reveal timing.
+      revealTargets.forEach((node) => node.classList.add("is-visible"))
+      return undefined
+    }
+
+    if (
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ||
+      typeof IntersectionObserver === "undefined"
+    ) {
+      revealTargets.forEach((node) => node.classList.add("is-visible"))
+      return undefined
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return
+          entry.target.classList.add("is-visible")
+          observer.unobserve(entry.target)
+        })
+      },
+      { threshold: 0.16, rootMargin: "0px 0px -10% 0px" }
+    )
+
+    revealTargets.forEach((node) => {
+      if (node.getBoundingClientRect().top < window.innerHeight * 0.88) {
+        node.classList.add("is-visible")
+      } else {
+        observer.observe(node)
+      }
+    })
+
+    return () => observer.disconnect()
+  }, [activePage, simulationPanelOpen])
+
+  useEffect(() => {
+    if (activePage !== "Home") return undefined
+    const heroNode = heroRef.current
+    if (!heroNode) return undefined
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return undefined
+
+    let ticking = false
+
+    const applyParallax = () => {
+      const rect = heroNode.getBoundingClientRect()
+      const viewportHeight = window.innerHeight || 1
+      const centerOffset = rect.top + rect.height / 2 - viewportHeight / 2
+      const normalized = clamp(centerOffset / viewportHeight, -1, 1)
+      heroNode.style.setProperty("--hero-shift", `${Math.round(normalized * -22)}px`)
+      heroNode.style.setProperty("--hero-tilt", `${(normalized * -0.9).toFixed(3)}deg`)
+      ticking = false
+    }
+
+    const onScroll = () => {
+      if (ticking) return
+      ticking = true
+      window.requestAnimationFrame(applyParallax)
+    }
+
+    applyParallax()
+    window.addEventListener("scroll", onScroll, { passive: true })
+    window.addEventListener("resize", onScroll)
+    return () => {
+      window.removeEventListener("scroll", onScroll)
+      window.removeEventListener("resize", onScroll)
+    }
+  }, [activePage])
+
+  const forecastConfig = useMemo(() => {
+    return (
+      FORECAST_HORIZON_OPTIONS.find((option) => option.id === forecastHorizonId) ||
+      FORECAST_HORIZON_OPTIONS[0]
+    )
+  }, [forecastHorizonId])
+
+  useEffect(() => {
+    if (!forecastPlaying) return undefined
+    const id = window.setInterval(() => {
+      setForecastProgress((prev) => {
+        const next = prev + 0.015
+        if (next >= 1) {
+          setForecastPlaying(false)
+          return 1
+        }
+        return next
+      })
+    }, 120)
+    return () => window.clearInterval(id)
+  }, [forecastPlaying])
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -1236,14 +2165,195 @@ function App() {
       source: "Demo scenario"
     }
   }, [demoScenarioEnabled, ships, env.tempC])
+  const mockRecentWhales = useMemo(
+    () => (useMockRecentWhales ? generateMockRecentWhales(MOCK_RECENT_WHALES_COUNT, LA_CENTER) : []),
+    [useMockRecentWhales]
+  )
+  const mergedWhaleData = useMemo(
+    () => dedupeWhaleRows([...whales, ...mockRecentWhales]),
+    [whales, mockRecentWhales]
+  )
   const whaleDataset = useMemo(
-    () => (scenarioWhale ? [scenarioWhale, ...whales] : whales),
-    [whales, scenarioWhale]
+    () => (scenarioWhale ? [scenarioWhale, ...mergedWhaleData] : mergedWhaleData),
+    [mergedWhaleData, scenarioWhale]
   )
 
   const scoredShips = useMemo(
     () => ships.map((ship) => computeShipRisk(ship, whaleDataset, env.krillScore)),
     [ships, whaleDataset, env.krillScore]
+  )
+  const simulationShip = useMemo(() => {
+    if (selectedShip) return selectedShip
+    if (!scoredShips.length) return null
+    const ranked = [...scoredShips].sort((a, b) => Number(b.riskScore || 0) - Number(a.riskScore || 0))
+    return ranked[0] || null
+  }, [selectedShip, scoredShips])
+  const shipSimulation = useMemo(() => {
+    if (!simulationShip) return null
+    try {
+      const shipLat = Number(simulationShip.lat)
+      const shipLon = Number(simulationShip.lon)
+      if (!Number.isFinite(shipLat) || !Number.isFinite(shipLon)) {
+        return {
+          error: "Selected ship has invalid position data.",
+          selectedShipName: simulationShip.shipName || simulationShip.mmsi || "Selected vessel"
+        }
+      }
+
+      const shipHistory = shipTrackHistory[String(simulationShip.mmsi)] || []
+      const shipMotion = deriveShipMotionFromHistory(simulationShip, shipHistory)
+      const heading = shipMotion.headingDeg
+      const speed = shipMotion.speedKnots
+      const currentPath = projectTrack({
+        lat: shipLat,
+        lon: shipLon,
+        headingDeg: heading,
+        speedKnots: speed,
+        minutes: forecastConfig.minutes,
+        stepMin: forecastConfig.stepMinutes
+      })
+      const whaleCandidates = ensureWhaleCandidates(
+        { ...simulationShip, lat: shipLat, lon: shipLon },
+        whaleDataset,
+        env.krillScore
+      ).slice(0, 30)
+      const whaleTracks = whaleCandidates.map((w) =>
+        projectWhaleTrack(
+          w,
+          heading,
+          Number(env.krillScore || 0),
+          forecastConfig.minutes,
+          forecastConfig.stepMinutes
+        )
+      )
+
+      const beforeScore = scoreRouteRisk(currentPath, whaleTracks, speed, Number(env.krillScore || 0))
+      const cpaBeforeKm = beforeScore.minCpaKm
+      const riskBefore = collisionProbability(cpaBeforeKm, speed, whaleTracks.length)
+
+      const candidateTurns = [-24, -20, -16, -12, -8, -4, 0, 4, 8, 12, 16, 20, 24]
+      const speedTargets = [5, 8, 10, 12, 14, 16, 18, 22, 25]
+      let bestPlan = null
+      const allPlans = []
+
+      for (const turn of candidateTurns) {
+        for (const target of speedTargets) {
+          const candidateSpeed = clamp((speed * 0.45 + target * 0.55), 4.5, 25)
+          const candidateHeading = (heading + turn + 360) % 360
+          const path = projectTrack({
+            lat: shipLat,
+            lon: shipLon,
+            headingDeg: candidateHeading,
+            speedKnots: candidateSpeed,
+            minutes: forecastConfig.minutes,
+            stepMin: forecastConfig.stepMinutes
+          })
+          const scored = scoreRouteRisk(path, whaleTracks, candidateSpeed, Number(env.krillScore || 0))
+          const cpa = scored.minCpaKm
+          const p = collisionProbability(cpa, candidateSpeed, whaleTracks.length)
+
+          const etaPenalty = clamp((speed / Math.max(4.5, candidateSpeed) - 1) * 0.28, 0, 0.8)
+          const turnPenalty = clamp(Math.abs(turn) / 45, 0, 1) * 0.1
+          const objective = p + etaPenalty + turnPenalty
+          const plan = {
+            objective,
+            turnDeg: turn,
+            path,
+            speedAfter: candidateSpeed,
+            cpaAfterKm: cpa,
+            riskAfter: p
+          }
+          allPlans.push(plan)
+
+          if (!bestPlan || objective < bestPlan.objective) {
+            bestPlan = plan
+          }
+        }
+      }
+
+      const fallbackPlan = {
+        turnDeg: 12,
+        path: projectTrack({
+          lat: shipLat,
+          lon: shipLon,
+          headingDeg: (heading + 12) % 360,
+          speedKnots: speed * 0.85,
+          minutes: forecastConfig.minutes,
+          stepMin: forecastConfig.stepMinutes
+        }),
+        speedAfter: speed * 0.85,
+        cpaAfterKm: cpaBeforeKm,
+        riskAfter: riskBefore
+      }
+      let chosenPlan = bestPlan || fallbackPlan
+      const meaningfulPlans = allPlans.filter(
+        (plan) => Math.abs(plan.turnDeg) >= 6 || Math.abs(plan.speedAfter - speed) >= 1.0
+      )
+      const improvedPlans = meaningfulPlans.filter((plan) => plan.riskAfter <= riskBefore - 0.02)
+      if (improvedPlans.length) {
+        chosenPlan = improvedPlans.reduce((best, plan) =>
+          !best || plan.objective < best.objective ? plan : best
+        , null) || chosenPlan
+      } else if (meaningfulPlans.length) {
+        // Force visible divergence when improvement is small by picking strongest CPA gain.
+        chosenPlan = meaningfulPlans.reduce((best, plan) =>
+          !best || plan.cpaAfterKm > best.cpaAfterKm ? plan : best
+        , null) || chosenPlan
+      }
+      const recommendedPath = chosenPlan.path
+      const cpaAfterKm = chosenPlan.cpaAfterKm
+      const riskAfter = chosenPlan.riskAfter
+
+      const decision = riskAfter >= 0.4 ? "SLOWDOWN" : riskAfter >= 0.2 ? "CAUTION" : "GO"
+
+      return {
+        selectedShipName: simulationShip.shipName || simulationShip.mmsi || "Selected vessel",
+        forecastMinutes: forecastConfig.minutes,
+        forecastStepMinutes: forecastConfig.stepMinutes,
+        shipMotionSource: shipMotion.source,
+        currentPath,
+        recommendedPath,
+        whaleTracks,
+        whaleCandidatesUsed: whaleCandidates.length,
+        cpaBeforeKm: Number.isFinite(cpaBeforeKm) ? cpaBeforeKm : null,
+        cpaAfterKm: Number.isFinite(cpaAfterKm) ? cpaAfterKm : null,
+        riskBefore,
+        riskAfter,
+        turnDeg: chosenPlan.turnDeg,
+        speedBefore: speed,
+        speedAfter: chosenPlan.speedAfter,
+        decision,
+        improvementPct: clamp(Math.round((riskBefore - riskAfter) * 100), 0, 100)
+      }
+    } catch (error) {
+      return {
+        error: error instanceof Error ? error.message : "Simulation failed unexpectedly.",
+        selectedShipName: simulationShip.shipName || simulationShip.mmsi || "Selected vessel"
+      }
+    }
+  }, [simulationShip, whaleDataset, env.krillScore, shipTrackHistory, forecastConfig])
+  useEffect(() => {
+    setForecastProgress(0)
+  }, [simulationShip?.mmsi, forecastHorizonId])
+
+  useEffect(() => {
+    // Start showing a visible segment immediately after rerender.
+    if (forecastProgress === 0 && forecastPlaying) {
+      setForecastProgress(0.08)
+    }
+  }, [forecastProgress, forecastPlaying])
+
+  const animatedSimulationCurrentPath = useMemo(
+    () => trimPathToProgress(shipSimulation?.currentPath || [], forecastProgress),
+    [shipSimulation?.currentPath, forecastProgress]
+  )
+  const animatedSimulationRecommendedPath = useMemo(
+    () => trimPathToProgress(shipSimulation?.recommendedPath || [], forecastProgress),
+    [shipSimulation?.recommendedPath, forecastProgress]
+  )
+  const animatedSimulationWhaleTracks = useMemo(
+    () => (shipSimulation?.whaleTracks || []).map((track) => trimPathToProgress(track || [], forecastProgress)),
+    [shipSimulation?.whaleTracks, forecastProgress]
   )
   const filteredWhales = useMemo(() => {
     const search = whaleSearch.trim().toLowerCase()
@@ -1390,10 +2500,138 @@ function App() {
   const dashboardWhaleTrackerData = selectedShip ? contextualWhalesForSelectedShip : activeWhaleData
   const dashboardShipTrackerData = selectedWhale ? contextualShipsForSelectedWhale : activeShipData
 
+  const openSimulationForShip = (ship, keyPrefix = "s") => {
+    if (!ship) return
+    setSelectedShip(ship)
+    setSimulationPanelOpen(true)
+    setForecastPlaying(true)
+    setForecastProgress((prev) => (prev <= 0.02 ? 0.12 : prev))
+    const lat = Number(ship.lat)
+    const lon = Number(ship.lon)
+    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+      const nextFocus = { lat, lon, key: `${keyPrefix}-${ship.mmsi || ship.id}-${Date.now()}` }
+      setFocusTarget(nextFocus)
+      setSimulationFocusTarget({ ...nextFocus, key: `sim-focus-${nextFocus.key}` })
+    }
+  }
+
+  const openSimulationForWhale = (whale, keyPrefix = "w") => {
+    if (!whale) return
+    setSelectedWhale(whale)
+    if (Number.isFinite(whale.lat) && Number.isFinite(whale.lon)) {
+      setFocusTarget({ lat: whale.lat, lon: whale.lon, key: `${keyPrefix}-${whale.id || whale.occurrenceId}-${Date.now()}` })
+    }
+  }
+
+  const simulationPanelWhales = useMemo(() => {
+    const base = selectedWhale ? [selectedWhale] : []
+    const nearby = contextualWhalesForSelectedShip.slice(0, 60)
+    return dedupeWhaleRows([...base, ...nearby]).slice(0, 90)
+  }, [selectedWhale, contextualWhalesForSelectedShip])
+
+  const simulationPanelShips = useMemo(() => {
+    return selectedShip ? [selectedShip] : []
+  }, [selectedShip])
+
+  const simulationPanelCurrentPathMock = useMemo(() => {
+    const shipLat = Number(selectedShip?.lat)
+    const shipLon = Number(selectedShip?.lon)
+    if (!Number.isFinite(shipLat) || !Number.isFinite(shipLon)) return []
+    const OFFSHORE_ANCHOR = { lat: 32.6, lon: -119.6 }
+    const oceanBearing = headingBetween(shipLat, shipLon, OFFSHORE_ANCHOR.lat, OFFSHORE_ANCHOR.lon)
+    const shipHeading = Number(selectedShip?.heading)
+    const initialTest = Number.isFinite(shipHeading)
+      ? destinationPointKm(shipLat, shipLon, shipHeading, 1.5)
+      : null
+    const baseHeading =
+      initialTest && isLikelyOceanPoint(initialTest.lat, initialTest.lon) ? shipHeading : oceanBearing
+    const points = [{ lat: shipLat, lon: shipLon }]
+    let curLat = shipLat
+    let curLon = shipLon
+    let heading = baseHeading
+    for (let i = 1; i <= 14; i += 1) {
+      const wiggled = heading + Math.sin(i / 2.8) * 2.5
+      let next = destinationPointKm(curLat, curLon, wiggled, 1.2)
+      if (!isLikelyOceanPoint(next.lat, next.lon)) {
+        heading = headingBetween(curLat, curLon, OFFSHORE_ANCHOR.lat, OFFSHORE_ANCHOR.lon)
+        next = destinationPointKm(curLat, curLon, heading, 1.2)
+      }
+      curLat = next.lat
+      curLon = next.lon
+      points.push({ lat: curLat, lon: curLon, tMin: i * 5 })
+    }
+    return points
+  }, [selectedShip])
+
+  const simulationPanelRecommendedPathMock = useMemo(() => {
+    const shipLat = Number(selectedShip?.lat)
+    const shipLon = Number(selectedShip?.lon)
+    if (!Number.isFinite(shipLat) || !Number.isFinite(shipLon)) return []
+    const OFFSHORE_ANCHOR = { lat: 32.6, lon: -119.6 }
+    const oceanBearing = headingBetween(shipLat, shipLon, OFFSHORE_ANCHOR.lat, OFFSHORE_ANCHOR.lon)
+    const shipHeading = Number(selectedShip?.heading)
+    const initialTest = Number.isFinite(shipHeading)
+      ? destinationPointKm(shipLat, shipLon, shipHeading, 1.5)
+      : null
+    const baseHeading =
+      initialTest && isLikelyOceanPoint(initialTest.lat, initialTest.lon) ? shipHeading : oceanBearing
+    const turn = 18
+    const plusEnd = destinationPointKm(shipLat, shipLon, baseHeading + turn, 6)
+    const minusEnd = destinationPointKm(shipLat, shipLon, baseHeading - turn, 6)
+    const plusOcean = isLikelyOceanPoint(plusEnd.lat, plusEnd.lon)
+    const minusOcean = isLikelyOceanPoint(minusEnd.lat, minusEnd.lon)
+    const turnSign = plusOcean && !minusOcean ? 1 : minusOcean && !plusOcean ? -1 : plusOcean ? 1 : -1
+    const points = [{ lat: shipLat, lon: shipLon }]
+    let curLat = shipLat
+    let curLon = shipLon
+    for (let i = 1; i <= 14; i += 1) {
+      const adaptiveTurn = (i <= 4 ? turn * (i / 4) : turn) * turnSign
+      let candidateHeading = baseHeading + adaptiveTurn
+      let next = destinationPointKm(curLat, curLon, candidateHeading, 0.95)
+      if (!isLikelyOceanPoint(next.lat, next.lon)) {
+        candidateHeading = headingBetween(curLat, curLon, OFFSHORE_ANCHOR.lat, OFFSHORE_ANCHOR.lon)
+        next = destinationPointKm(curLat, curLon, candidateHeading, 0.95)
+      }
+      curLat = next.lat
+      curLon = next.lon
+      points.push({ lat: curLat, lon: curLon, tMin: i * 5 })
+    }
+    return points
+  }, [selectedShip])
+
+  const simulationNarrative = useMemo(() => {
+    const ship = selectedShip
+    const whale = selectedWhale
+    if (!ship && !whale) {
+      return "Select a ship or whale on the dashboard map to open a focused simulation."
+    }
+    if (ship && whale) {
+      const distKm = Number.isFinite(ship.lat) && Number.isFinite(ship.lon) && Number.isFinite(whale.lat) && Number.isFinite(whale.lon)
+        ? haversineKm(ship.lat, ship.lon, whale.lat, whale.lon)
+        : null
+      return `Scenario: ${ship.shipName || ship.mmsi} is being evaluated against ${
+        whale.commonName || whale.species || "nearby whale activity"
+      }. ${
+        distKm === null ? "" : `Current ship-to-whale separation is ${distKm.toFixed(2)} km. `
+      }The orange path is baseline motion and the green path is the model-recommended route based on projected whale movement and vessel constraints.`
+    }
+    if (ship) {
+      return `Scenario: ${ship.shipName || ship.mmsi} reroute simulation uses nearby whale sightings, migration tendency, vessel speed, and heading to generate the recommended green path.`
+    }
+    return `Scenario: ${
+      whale?.commonName || whale?.species || "Selected whale"
+    } migration context is used to identify the nearest vessel and generate a route recommendation around projected whale movement.`
+  }, [selectedShip, selectedWhale])
+
   const topAlerts = useMemo(
     () => [...filteredShips].sort((a, b) => b.riskScore - a.riskScore).slice(0, 5),
     [filteredShips]
   )
+  useEffect(() => {
+    if (selectedShip) return
+    if (!topAlerts.length) return
+    setSelectedShip(topAlerts[0])
+  }, [selectedShip, topAlerts])
   const movingShips = useMemo(
     () => filteredShips.filter((ship) => Number(ship.sog || 0) >= 1),
     [filteredShips]
@@ -1439,54 +2677,9 @@ function App() {
     return counts
   }, [filteredWhales])
   const whaleSourceSummary = `Sources: GBIF (${whaleSourceBreakdown.GBIF}) · iNaturalist (${whaleSourceBreakdown.iNaturalist}) · OBIS (${whaleSourceBreakdown.OBIS}) · Other (${whaleSourceBreakdown.Other})`
-  const acousticDetectionsToday = useMemo(
-    () => Math.min(8, Math.max(3, Math.round(filteredWhales.length / 25))),
-    [filteredWhales.length]
-  )
+  const mockWhalesVisible = filteredWhales.filter((w) => w.sourceSystem === "MOCK_RECENT").length
+  const realWhalesVisible = filteredWhales.length - mockWhalesVisible
   const advisorySentMmsi = useMemo(() => new Set(advisorySentRef.current), [advisoryTick])
-  const agentLogEntries = useMemo(() => {
-    const nowStamp = new Date().toLocaleTimeString("en-US", { hour12: false })
-    const entries = []
-    if (selectedWhale) {
-      entries.push({
-        type: "whale",
-        text: `[${nowStamp}] [WHALE_AGENT] Broadcasting ${fmt(
-          selectedWhale.scientificName
-        )} at ${selectedWhale.lat.toFixed(3)}°, ${selectedWhale.lon.toFixed(3)}°. Risk radius 5km.`
-      })
-    }
-    entries.push({
-      type: "port",
-      text: `[${nowStamp}] [PORT_AUTHORITY] Advisory: 10-knot speed zone active in San Pedro Channel corridor.`
-    })
-    for (const ship of topAlerts.slice(0, 4)) {
-      entries.push({
-        type: ship.riskBand === "high" ? "ship-high" : "ship",
-        text: `[${nowStamp}] [SHIP_AGENT:${ship.shipName || ship.mmsi}] Risk ${ship.riskScore} -> ${recommendedAction(
-          ship
-        )}`
-      })
-      if (advisorySentMmsi.has(String(ship.mmsi))) {
-        entries.push({
-          type: "ship-high",
-          text: `[${nowStamp}] [SYSTEM] Advisory sent to ${ship.shipName || ship.mmsi} and acknowledged.`
-        })
-      }
-    }
-    if (!entries.length) {
-      entries.push({
-        type: "system",
-        text: `[${nowStamp}] [SYSTEM] Waiting for AIS/whale updates...`
-      })
-    }
-    if (demoScenarioEnabled) {
-      entries.unshift({
-        type: "ship-high",
-        text: `[${nowStamp}] [SCENARIO] Agent rerouted BAYWATCH 20 — collision avoided.`
-      })
-    }
-    return entries
-  }, [selectedWhale, topAlerts, advisorySentMmsi, demoScenarioEnabled])
 
   const homeWhaleLiveCount = whaleLiveData.length
   const homeShipLiveCount = shipLiveData.length
@@ -1543,7 +2736,6 @@ function App() {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 6)
   }, [filteredWhales])
-
   useEffect(() => {
     setSelectedShip((prev) => {
       if (!prev?.mmsi) return prev
@@ -1568,10 +2760,13 @@ function App() {
         </nav>
       </header>
 
-      <main className="layout">
+      <main
+        className={`layout page-shell page-${activePage.toLowerCase().replace(/\s+/g, "-")}`}
+        ref={layoutRef}
+      >
         {activePage === "Home" && (
           <>
-            <section className="hero">
+            <section className="hero hero-premium home-hero" ref={heroRef}>
               <h1>
                 Protecting whales with <span>real-time maritime intelligence</span>
               </h1>
@@ -1586,10 +2781,20 @@ function App() {
                 <button className="button ghost" onClick={() => setActivePage("Impact")}>
                   View Impact Report
                 </button>
+                <button
+                  className="button ghost"
+                  onClick={() =>
+                    document
+                      .getElementById("home-live-preview")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                  }
+                >
+                  Explore Live Preview ↓
+                </button>
               </div>
             </section>
 
-            <section className="card">
+            <section className="card home-section" id="home-live-preview">
               <div className="panel-title">Live San Pedro Channel Preview</div>
               <div className="panel-subtitle">Real ship + whale observations near the Port of Los Angeles.</div>
               <LiveMap
@@ -1612,18 +2817,13 @@ function App() {
                 focusTarget={focusTarget}
                 whalePathPoints={selectedWhalePath}
                 shipPathPoints={selectedShipPath}
+                simulationCurrentPath={animatedSimulationCurrentPath}
+                simulationRecommendedPath={animatedSimulationRecommendedPath}
+                simulationWhaleTracks={animatedSimulationWhaleTracks}
               />
             </section>
 
-            <section className="card carbon-callout">
-              <div className="panel-title">Why It Matters</div>
-              <div className="impact-hero-value">1 whale = 33 tons CO₂ = ~1,500 trees</div>
-              <div className="row-sub">
-                BlueGuard has protected the equivalent of {(Math.max(1, reroutesTriggered) * 1500).toLocaleString()} trees this season.
-              </div>
-            </section>
-
-            <section className="card-grid">
+            <section className="card-grid home-section">
               <article className="card stat-card whale-stat">
                 <div className="stat-label">Live Whale Sightings</div>
                 <div className="stat-value">{loading ? <span className="skeleton-bar" /> : homeWhaleLiveCount}</div>
@@ -1652,42 +2852,6 @@ function App() {
               </article>
             </section>
 
-            <section className="grid-3">
-              <article className="card">
-                <div className="panel-title">How It Works</div>
-                <div className="list">
-                  <div className="row">
-                    <div>
-                      <div className="row-title">1) Detect</div>
-                      <div className="row-sub">Whale Agent ingests sightings + acoustics in the LA corridor.</div>
-                    </div>
-                  </div>
-                  <div className="row">
-                    <div>
-                      <div className="row-title">2) Score</div>
-                      <div className="row-sub">Risk engine evaluates proximity, speed, heading, and ocean context.</div>
-                    </div>
-                  </div>
-                  <div className="row">
-                    <div>
-                      <div className="row-title">3) Reroute</div>
-                      <div className="row-sub">Ship agents issue speed + heading advisories before conflict zones.</div>
-                    </div>
-                  </div>
-                </div>
-              </article>
-              <article className="card" style={{ gridColumn: "span 2" }}>
-                <div className="panel-title">Powered By</div>
-                <div className="tech-badges">
-                  <span className="badge">Fetch.ai Agentverse</span>
-                  <span className="badge">AISStream.io</span>
-                  <span className="badge">NOAA ERDDAP</span>
-                  <span className="badge">OBIS-SEAMAP</span>
-                  <span className="badge">Open-Meteo</span>
-                  <span className="badge">Mapbox</span>
-                </div>
-              </article>
-            </section>
           </>
         )}
 
@@ -1751,6 +2915,8 @@ function App() {
                     <span className="badge">
                       {filteredShips.length} vessels · {filteredWhales.length} whale sightings
                     </span>
+                    <span className="badge ok">real whales: {realWhalesVisible}</span>
+                    <span className="badge">mock recent whales: {mockWhalesVisible}</span>
                   </div>
                   <div className="row-sub" style={{ marginTop: "8px" }} title={whaleSourceSummary}>
                     {whaleSourceSummary}
@@ -1761,25 +2927,23 @@ function App() {
                   ships={movingShips}
                   height={560}
                   mapScope="dashboard"
-                  onWhaleSelect={(w) => {
-                    setSelectedWhale(w)
-                    setFocusTarget({ lat: w.lat, lon: w.lon, key: `w-${w.id}-${Date.now()}` })
-                  }}
-                  onShipSelect={(s) => {
-                    setSelectedShip(s)
-                    setFocusTarget({ lat: s.lat, lon: s.lon, key: `s-${s.mmsi}-${Date.now()}` })
-                  }}
+                  onWhaleSelect={(w) => openSimulationForWhale(w, "dash-w")}
+                  onShipSelect={(s) => openSimulationForShip(s, "dash-s")}
                   selectedWhale={selectedWhale}
                   selectedShip={selectedShip}
                   focusTarget={focusTarget}
                   whalePathPoints={selectedWhalePath}
                   shipPathPoints={selectedShipPath}
+                  simulationCurrentPath={animatedSimulationCurrentPath}
+                  simulationRecommendedPath={animatedSimulationRecommendedPath}
+                  simulationWhaleTracks={animatedSimulationWhaleTracks}
                 />
                 <div className="map-legend">
-                  <span><i className="legend-dot blue-whale" />Blue whale</span>
-                  <span><i className="legend-dot fin-whale" />Fin whale</span>
-                  <span><i className="legend-dot humpback-whale" />Humpback</span>
-                  <span><i className="legend-dot other-whale" />Other whale</span>
+                  <span><i className="legend-dot whale-real" />Real whale sightings</span>
+                  <span><i className="legend-dot whale-mock" />Mock recent whales</span>
+                  <span><i className="legend-dot" style={{ background: "#fb923c" }} />Predicted current path (growing dots)</span>
+                  <span><i className="legend-dot" style={{ background: "#22c55e" }} />AI recommended path (growing dots)</span>
+                  <span><i className="legend-dot" style={{ background: "#3b82f6" }} />Whale forecast (growing dots)</span>
                 </div>
               </article>
 
@@ -1793,6 +2957,16 @@ function App() {
                   >
                     {demoScenarioEnabled ? "Scenario Mode: ON" : "Scenario Mode: OFF"} (press D)
                   </button>
+                  <button
+                    className={`button ${useMockRecentWhales ? "primary" : "ghost"}`}
+                    style={{ marginLeft: "8px" }}
+                    onClick={() => setUseMockRecentWhales((prev) => !prev)}
+                  >
+                    {useMockRecentWhales ? "Mock Whale Data: ON" : "Mock Whale Data: OFF"}
+                  </button>
+                </div>
+                <div className="row-sub" style={{ marginTop: "6px" }}>
+                  AI model input currently uses {realWhalesVisible} real + {mockWhalesVisible} mock recent whale sightings.
                 </div>
                 <div className="grid-2" style={{ marginTop: "8px" }}>
                   <div className="row">
@@ -1820,14 +2994,7 @@ function App() {
                       <div
                         className="row interactive-row"
                         key={ship.mmsi}
-                        onClick={() => {
-                          setSelectedShip(ship)
-                          setFocusTarget({
-                            lat: ship.lat,
-                            lon: ship.lon,
-                            key: `s-${ship.mmsi}-${Date.now()}`
-                          })
-                        }}
+                        onClick={() => openSimulationForShip(ship, "alerts-s")}
                       >
                         <div>
                           <div className="row-title">{ship.shipName}</div>
@@ -1862,30 +3029,6 @@ function App() {
                   )}
                 </div>
 
-                <div className="panel-title" style={{ marginTop: "10px" }}>Risk Legend</div>
-                <div className="list">
-                  <div className="row">
-                    <div>
-                      <div className="row-title">HIGH</div>
-                      <div className="row-sub">Score 40+ | immediate slow-down / reroute candidate.</div>
-                    </div>
-                    <span className="badge high">{highRiskCount}</span>
-                  </div>
-                  <div className="row">
-                    <div>
-                      <div className="row-title">MEDIUM</div>
-                      <div className="row-sub">Score 25-39 | monitor and prepare mitigation.</div>
-                    </div>
-                    <span className="badge medium">{mediumRiskCount}</span>
-                  </div>
-                  <div className="row">
-                    <div>
-                      <div className="row-title">LOW</div>
-                      <div className="row-sub">Score less than 25 | normal monitoring.</div>
-                    </div>
-                    <span className="badge ok">{lowRiskCount}</span>
-                  </div>
-                </div>
               </article>
             </section>
 
@@ -1912,56 +3055,6 @@ function App() {
                 <div className="stat-label">CO₂ Protected Today</div>
                 <div className="stat-value">{co2ProtectedToday.toLocaleString()} tons</div>
                 <div className="stat-sub">{reroutesTriggered} reroutes × 33 tons per whale (upper bound)</div>
-              </article>
-            </section>
-            <section className="grid-2">
-              <article className="card">
-                <div className="panel-title">
-                  Agent Event Feed{" "}
-                  <a
-                    className="agentverse-link"
-                    href="https://agentverse.ai"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Registered on Agentverse ↗
-                  </a>
-                </div>
-                <div className="panel-subtitle">Fetch.ai-style coordination messages</div>
-                <div className="list">
-                  {agentLogEntries.map((entry, idx) => (
-                    <div className={`row-sub agent-log ${entry.type || "system"}`} key={`agent-log-${idx}`}>
-                      {entry.text}
-                    </div>
-                  ))}
-                </div>
-              </article>
-              <article className="card">
-                <div className="panel-title">Acoustic Sensors</div>
-                <div className="panel-subtitle">NOAA SanctSound integration signal (demo layer)</div>
-                <div className="list">
-                  <div className="row">
-                    <div>
-                      <div className="row-title">Last Detection</div>
-                      <div className="row-sub">{fmt(lastLivePullAt)}</div>
-                    </div>
-                    <span className="badge ok">ACTIVE</span>
-                  </div>
-                  <div className="row">
-                    <div>
-                      <div className="row-title">Peak Frequency</div>
-                      <div className="row-sub">16-24 Hz band (large baleen profile)</div>
-                    </div>
-                    <span className="badge">Hydrophone</span>
-                  </div>
-                  <div className="row">
-                    <div>
-                      <div className="row-title">Detections Today</div>
-                      <div className="row-sub">{acousticDetectionsToday}</div>
-                    </div>
-                    <span className="badge ok">ACTIVE</span>
-                  </div>
-                </div>
               </article>
             </section>
             <section className="grid-2">
@@ -2002,19 +3095,16 @@ function App() {
                   ships={trackerTab === "ships" ? dashboardShipTrackerData : selectedShip ? [selectedShip] : []}
                   height={430}
                   mapScope={trackerTab === "ships" ? "ships" : "whales"}
-                  onWhaleSelect={(w) => {
-                    setSelectedWhale(w)
-                    setFocusTarget({ lat: w.lat, lon: w.lon, key: `w-${w.id}-${Date.now()}` })
-                  }}
-                  onShipSelect={(s) => {
-                    setSelectedShip(s)
-                    setFocusTarget({ lat: s.lat, lon: s.lon, key: `s-${s.mmsi}-${Date.now()}` })
-                  }}
+                  onWhaleSelect={(w) => openSimulationForWhale(w, "tracker-w")}
+                  onShipSelect={(s) => openSimulationForShip(s, "tracker-s")}
                   selectedWhale={selectedWhale}
                   selectedShip={selectedShip}
                   focusTarget={focusTarget}
                   whalePathPoints={selectedWhalePath}
                   shipPathPoints={selectedShipPath}
+                  simulationCurrentPath={animatedSimulationCurrentPath}
+                  simulationRecommendedPath={animatedSimulationRecommendedPath}
+                  simulationWhaleTracks={animatedSimulationWhaleTracks}
                 />
                 <div className="list">
                   {(trackerTab === "whales" ? dashboardWhaleTrackerData : dashboardShipTrackerData)
@@ -2025,20 +3115,10 @@ function App() {
                         className="row interactive-row"
                         onClick={() => {
                           if (trackerTab === "whales") {
-                            setSelectedWhale(item)
-                            setFocusTarget({
-                              lat: item.lat,
-                              lon: item.lon,
-                              key: `w-${item.id}-${Date.now()}`
-                            })
+                            openSimulationForWhale(item, "tracker-list-w")
                             return
                           }
-                          setSelectedShip(item)
-                          setFocusTarget({
-                            lat: item.lat,
-                            lon: item.lon,
-                            key: `s-${item.mmsi}-${Date.now()}`
-                          })
+                          openSimulationForShip(item, "tracker-list-s")
                         }}
                       >
                         <div>
@@ -2117,6 +3197,9 @@ function App() {
                 selectedShip={selectedShip}
                 focusTarget={focusTarget}
                 whalePathPoints={selectedWhalePath}
+                simulationCurrentPath={animatedSimulationCurrentPath}
+                simulationRecommendedPath={animatedSimulationRecommendedPath}
+                simulationWhaleTracks={animatedSimulationWhaleTracks}
               />
               <div className="list">
                 {activeWhaleData.length === 0 ? (
@@ -2154,42 +3237,6 @@ function App() {
         {activePage === "Ships" && (
           <>
             <h2 className="page-title">Live Vessel Tracker</h2>
-            <p className="page-subtitle">Switch between historical and live without side-by-side noise.</p>
-            <article className="card">
-              <div className="panel-title">AIS API Key (auto-loaded)</div>
-              <div className="panel-subtitle">
-                Uses `VITE_AISSTREAM_API_KEY` first, then saved browser key.
-              </div>
-              <div className="grid-2">
-                <input
-                  value={aisKey}
-                  onChange={(e) => setAisKey(e.target.value)}
-                  placeholder="Paste AISSTREAM_API_KEY"
-                  type={showAisKey ? "text" : "password"}
-                  style={{
-                    padding: "10px",
-                    borderRadius: "10px",
-                    border: "1px solid var(--border)",
-                    width: "100%"
-                  }}
-                />
-                <button className="button ghost" onClick={() => setShowAisKey((prev) => !prev)}>
-                  {showAisKey ? "Hide key" : "Show key"}
-                </button>
-                <div className="info">
-                  Status: <strong>{aisConnected ? "Connected" : "Not connected"}</strong>
-                  <div className="label">Streaming AIS vessel positions in LA bounding box</div>
-                  <div className="label">Endpoint: {aisDebug.endpoint}</div>
-                  <div className="label">Raw frames: {aisDebug.rawFrames}</div>
-                  <div className="label">Messages: {aisDebug.messages}</div>
-                  <div className="label">Buffered in memory: {aisBufferRef.current.size}</div>
-                  <div className="label">Last message: {fmt(aisDebug.lastMessageAt)}</div>
-                  <div className="label">Last UI flush: {fmt(aisDebug.lastUiFlushAt)}</div>
-                  <div className="label">Last raw type: {aisDebug.lastRawType}</div>
-                  <div className="label">Last raw: {fmt(aisDebug.lastRawSnippet)}</div>
-                </div>
-              </div>
-            </article>
 
             <article className="card">
               <div className="mode-switch">
@@ -2240,6 +3287,9 @@ function App() {
                 selectedShip={selectedShip}
                 focusTarget={focusTarget}
                 shipPathPoints={selectedShipPath}
+                simulationCurrentPath={animatedSimulationCurrentPath}
+                simulationRecommendedPath={animatedSimulationRecommendedPath}
+                simulationWhaleTracks={animatedSimulationWhaleTracks}
               />
               <table className="table">
                 <thead>
@@ -2289,88 +3339,89 @@ function App() {
 
         {activePage === "Impact" && (
           <>
-            <h2 className="page-title">Impact Analytics</h2>
-            <p className="page-subtitle">
-              Coverage period: {coveragePeriodLabel}. Conservative summary with explicit upper-bound assumptions.
-            </p>
-            <section className="card impact-hero">
+            <section className="impact-fullscreen-hero">
+              <h2 className="impact-fullscreen-title">Impact Analytics</h2>
+              <p className="impact-fullscreen-subtitle">
+                Coverage period: {coveragePeriodLabel}. Conservative summary with explicit upper-bound assumptions.
+              </p>
+              <p className="impact-sublead">
+                Every avoided strike protects biodiversity, preserves ocean carbon storage, and reduces operational
+                disruption for ships and ports.
+              </p>
               <div className="impact-hero-value">{impactCo2UpperBound.toLocaleString()} tons CO₂ protected</div>
-              <div className="row-sub">
+              <div className="row-sub impact-fullscreen-note">
                 Up to {impactPotentialWhalesProtected} whales protected if each high-risk encounter prevented one strike.
               </div>
             </section>
-            <section className="grid-3">
-              <article className="card">
-                <div className="stat-label">High-Risk Encounters Detected</div>
-                <div className="stat-value">{impactHighRiskEncounters}</div>
-                <div className="stat-sub">Verifiable encounters in monitored corridor</div>
-              </article>
-              <article className="card">
-                <div className="stat-label">Reroutes Triggered</div>
-                <div className="stat-value">{reroutesTriggered}</div>
-                <div className="stat-sub">Ships with actionable reroute recommendations</div>
-              </article>
-              <article className="card">
-                <div className="stat-label">Economic Risk Avoided (upper-bound)</div>
-                <div className="stat-value">${(reroutesTriggered * 50000).toLocaleString()}</div>
-                <div className="stat-sub">Approx. $50k per strike response and port disruption event</div>
-              </article>
-            </section>
-            <section className="grid-2">
-              <article className="card">
-                <div className="panel-title">Reroutes Per Day (30 days)</div>
-                <div className="impact-bars">
-                  {reroutesPerDay.map((entry) => (
-                    <div className="impact-bar-wrap" key={`impact-reroute-${entry.day}`}>
-                      <div
-                        className="impact-bar"
-                        style={{ height: `${Math.max(6, (entry.count / maxRerouteBar) * 100)}%` }}
-                        title={`${entry.day}: ${entry.count}`}
-                      />
+
+            <section className="impact-reason-panel">
+              <div className="impact-reason-grid">
+                {IMPACT_EVIDENCE_CARDS.map((item) => (
+                  <article className="impact-reason-card" key={item.id}>
+                    <img
+                      className="impact-reason-image"
+                      src={item.image}
+                      alt={item.alt}
+                      loading="lazy"
+                      onError={(event) => {
+                        const img = event.currentTarget
+                        if (img.dataset.fallbackApplied === "true") return
+                        img.dataset.fallbackApplied = "true"
+                        img.src =
+                          "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=1600&q=80"
+                      }}
+                    />
+                    <div className="impact-reason-content">
+                      <div className="impact-reason-kicker">{item.kicker || "Why this matters"}</div>
+                      <h3>{item.title}</h3>
+                      <div className="impact-reason-hover-details">
+                        {item.lead && (item.reasonBullets || item.humanBullets) ? (
+                          <>
+                            <p className="impact-reason-lead">{item.lead}</p>
+                            <ul className="impact-reason-bullets">
+                              {(item.reasonBullets || item.humanBullets).map((b) => (
+                                <li key={`${item.id}-${b.label}`}>
+                                  <span className="impact-reason-bullet-value">{b.value}</span>
+                                  <span className="impact-reason-bullet-label">{b.label}</span>
+                                  <span className="impact-reason-bullet-detail">{b.detail}</span>
+                                </li>
+                              ))}
+                            </ul>
+                            <a className="impact-source-link" href={item.link} target="_blank" rel="noreferrer">
+                              {item.cta} ↗
+                            </a>
+                          </>
+                        ) : (
+                          <>
+                            <blockquote>{item.quote}</blockquote>
+                            <div className="row-sub">— {item.attribution}</div>
+                            <a className="impact-source-link" href={item.link} target="_blank" rel="noreferrer">
+                              {item.cta} ↗
+                            </a>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </article>
-              <article className="card">
-                <div className="panel-title">Risk Distribution</div>
-                <div className="impact-donut-wrap">
-                  <div className="impact-donut" style={riskDonutStyle} />
-                  <div className="list">
-                    <div className="row-sub">High: {highRiskCount}</div>
-                    <div className="row-sub">Medium: {mediumRiskCount}</div>
-                    <div className="row-sub">Low: {lowRiskCount}</div>
-                  </div>
-                </div>
-              </article>
+                  </article>
+                ))}
+              </div>
             </section>
-            <section className="grid-2">
-              <article className="card">
-                <div className="panel-title">Species Breakdown (Encounter Context)</div>
-                <table className="table">
-                  <thead>
-                    <tr><th>Species</th><th>Sightings</th></tr>
-                  </thead>
-                  <tbody>
-                    {speciesBreakdown.map(([name, count]) => (
-                      <tr key={`species-${name}`}><td>{name}</td><td>{count}</td></tr>
-                    ))}
-                  </tbody>
-                </table>
-              </article>
-              <article className="card">
-                <div className="panel-title">Solution Comparison</div>
-                <div className="list">
-                  <div className="row"><div><div className="row-title">WhaleSafe</div><div className="row-sub">Passive alerts; human action required.</div></div></div>
-                  <div className="row"><div><div className="row-title">WRAS</div><div className="row-sub">Radio advisories to pilots.</div></div></div>
-                  <div className="row"><div><div className="row-title">BlueGuard</div><div className="row-sub">Autonomous agent scoring + reroute advisories in real time.</div></div></div>
-                </div>
-              </article>
-            </section>
-            <section className="grid-4">
-              <article className="card"><div className="stat-label">Trees Equivalent</div><div className="stat-value">{(impactPotentialWhalesProtected * 1500).toLocaleString()}</div></article>
-              <article className="card"><div className="stat-label">Cars Off Road (annual equiv.)</div><div className="stat-value">{Math.round(impactCo2UpperBound / 4.6).toLocaleString()}</div></article>
-              <article className="card"><div className="stat-label">Transatlantic Flights (equiv.)</div><div className="stat-value">{Math.round(impactCo2UpperBound / 2).toLocaleString()}</div></article>
-              <article className="card"><div className="stat-label">People Oxygen Equivalent</div><div className="stat-value">{Math.round((impactPotentialWhalesProtected * 1500) / 25).toLocaleString()}</div></article>
+
+            <section className="impact-fullscreen-outro">
+              <div className="panel-title">Read The Science & Policy</div>
+              <div className="list">
+                {IMPACT_ARTICLE_LINKS.map((entry) => (
+                  <a
+                    key={entry.href}
+                    className="impact-source-link"
+                    href={entry.href}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {entry.title} ↗
+                  </a>
+                ))}
+              </div>
             </section>
           </>
         )}
@@ -2401,10 +3452,109 @@ function App() {
                 </div>
               </div>
             </section>
+            <section className="home-section" style={{ marginTop: "12px" }}>
+              <article className="card how-it-works-card">
+                <div className="panel-title">How It Works</div>
+                <div className="panel-subtitle">From detection to intervention in under two minutes.</div>
+                <div className="how-it-works-steps">
+                  {HOME_HOW_IT_WORKS_STEPS.map((step) => (
+                    <div className="how-step" key={`about-how-${step.id}`}>
+                      <div className="how-step-badge">{step.badge}</div>
+                      <div>
+                        <div className="row-title">{step.title}</div>
+                        <div className="row-sub">{step.detail}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="how-it-works-footer">
+                  Every recommendation is logged so ports can audit outcomes and improve policy.
+                </div>
+              </article>
+            </section>
           </article>
         )}
 
-        {error && <div className="info">Live data notice: {error}</div>}
+        {activePage === "Dashboard" && simulationPanelOpen && selectedShip && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(2, 6, 23, 0.72)",
+              zIndex: 80,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "20px"
+            }}
+            onClick={() => setSimulationPanelOpen(false)}
+          >
+            <section
+              className="card"
+              style={{
+                width: "min(1300px, 96vw)",
+                maxHeight: "92vh",
+                overflow: "auto",
+                padding: "16px"
+              }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "10px"
+                }}
+              >
+                <div>
+                  <div className="panel-title">Simulation Panel (Focused Scenario)</div>
+                  <div className="panel-subtitle">
+                    Separate map for baseline vs AI-recommended route based on clicked ship.
+                  </div>
+                </div>
+                <button className="button ghost" onClick={() => setSimulationPanelOpen(false)}>
+                  Close
+                </button>
+              </div>
+              <div className="row-sub" style={{ marginTop: "8px" }}>
+                {simulationNarrative}
+              </div>
+              <div className="row-sub" style={{ marginTop: "4px" }}>
+                Debug: baseline dots {simulationPanelCurrentPathMock.length} · recommended dots{" "}
+                {simulationPanelRecommendedPathMock.length} · whale forecast tracks{" "}
+                {animatedSimulationWhaleTracks.length}
+              </div>
+              <LiveMap
+                whales={simulationPanelWhales}
+                ships={simulationPanelShips}
+                height={460}
+                mapScope="simulation"
+                onWhaleSelect={(w) => openSimulationForWhale(w, "sim-w")}
+                onShipSelect={(s) => openSimulationForShip(s, "sim-s")}
+                selectedWhale={selectedWhale}
+                selectedShip={selectedShip}
+                focusTarget={simulationFocusTarget || focusTarget}
+                whalePathPoints={selectedWhalePath}
+                shipPathPoints={selectedShipPath}
+                simulationCurrentPath={simulationPanelCurrentPathMock}
+                simulationRecommendedPath={simulationPanelRecommendedPathMock}
+                simulationWhaleTracks={animatedSimulationWhaleTracks}
+              />
+              <div className="map-legend">
+                <span><i className="legend-dot whale-real" />Observed whale sightings in scenario</span>
+                <span><i className="legend-dot whale-mock" />Mock/synthetic support points</span>
+                <span><i className="legend-dot" style={{ background: "#fb923c" }} />Ship baseline path</span>
+                <span><i className="legend-dot" style={{ background: "#22c55e" }} />AI recommended path</span>
+                <span><i className="legend-dot" style={{ background: "#3b82f6" }} />Projected whale movement</span>
+              </div>
+              <div className="row-sub" style={{ marginTop: "6px" }}>
+                Mockup UI using live data features. Model can be replaced with trained backend artifact later.
+              </div>
+            </section>
+          </div>
+        )}
+
       </main>
     </div>
   )
