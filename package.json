@@ -1,0 +1,9 @@
+{
+  "name": "blueguard",
+  "private": true,
+  "workspaces": ["frontend-live"],
+  "scripts": {
+    "build": "npm run build -w blueguard-live-frontend",
+    "dev": "npm run dev -w blueguard-live-frontend"
+  }
+}
